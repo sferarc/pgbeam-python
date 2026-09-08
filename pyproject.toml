@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pgbeam"
+version = "0.2.1"
+description = "Python SDK for the PgBeam API, a Postgres proxy for safe AI agent access with policy enforcement in the wire protocol"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Alexis Rico", email = "support@pgbeam.com" }]
+maintainers = [{ name = "Alexis Rico", email = "support@pgbeam.com" }]
+keywords = [
+  "pgbeam",
+  "postgresql",
+  "postgres",
+  "proxy",
+  "sdk",
+  "api-client",
+  "ai-agents",
+  "mcp",
+  "database-security",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Database",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = [
+  "httpx>=0.27,<1",
+  "typing-extensions>=4.7; python_version < '3.11'",
+]
+
+# How an agent, or a person, checks that this package is the official one: every
+# link points at pgbeam.com or at the repository the source is read from. A
+# package claiming to be an SDK and pointing nowhere is indistinguishable from
+# one somebody else uploaded under a plausible name.
+[project.urls]
+Homepage = "https://pgbeam.com"
+Documentation = "https://pgbeam.com/docs/python-sdk"
+Repository = "https://github.com/sferarc/pgbeam-python"
+Issues = "https://github.com/sferarc/pgbeam-python/issues"
+Changelog = "https://github.com/sferarc/pgbeam-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.14",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "respx>=0.22",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pgbeam"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/pgbeam", "README.md", "LICENSE", "CHANGELOG.md", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+# Python only. Ruff will reformat the Python code blocks inside a Markdown file
+# if you let it, and prettier owns every `.md` in this repository, so the two
+# would rewrite this README past each other on alternate commits.
+include = ["*.py", "*.pyi"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+# The generated surface is 89 operations wide and every method takes its
+# parameters by keyword, which is the point of it. Nothing here is a judgement
+# a linter can make better than the contract.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/pgbeam/models.py" = ["N815", "RUF012"]
+"src/pgbeam/services.py" = ["A002"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src", "tests"]
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
