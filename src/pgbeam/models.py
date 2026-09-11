@@ -2091,6 +2091,10 @@ class PolicyProfile(TypedDict):
     egress_bytes_per_day: NotRequired[int]
     # Hard cap on rows a single write (INSERT/UPDATE/DELETE) may affect. A write whose affected-row count would exceed this is executed inside a transaction, checked, and rolled back so nothing persists, then blocked. Enforced independently of human approval. 0 means unlimited.
     max_affected_rows: NotRequired[int]
+    # Result-content scanning, accepted and stored but not yet enforced: no released proxy build reads this field, so today every value behaves like off. Once enforcement ships on the data-plane relay path, values on their way out to an agent will be checked for instruction-shaped content (stored prompt injection). off will scan nothing and cost nothing. annotate will forward every value unchanged and record what it found. block will additionally refuse the statement with an error naming the column, and never drop a row silently. A proxy build without result-content scanning ignores this field.
+    content_scan_mode: NotRequired[Literal["off", "annotate", "block"]]
+    # Byte budget for one statement's content scan, spanning all values in the result. Stored but not yet read by any released proxy build, like content_scan_mode. Once enforced, values past it are reported unscannable rather than skipped quietly. 0 uses the scanner default (4 MiB), which covers an interactive result set and deliberately does not cover a bulk export.
+    content_scan_max_bytes: NotRequired[int]
     # When the policy profile was created.
     created_at: str
     # When the policy profile was last updated.
@@ -2135,6 +2139,10 @@ class PolicyProfileInput(TypedDict):
     egress_bytes_per_day: NotRequired[int]
     # Hard cap on rows a single write (INSERT/UPDATE/DELETE) may affect. A write whose affected-row count would exceed this is executed inside a transaction, checked, and rolled back so nothing persists, then blocked. Enforced independently of human approval. 0 means unlimited.
     max_affected_rows: NotRequired[int]
+    # Result-content scanning, accepted and stored but not yet enforced: no released proxy build reads this field, so today every value behaves like off. Once enforcement ships on the data-plane relay path, values on their way out to an agent will be checked for instruction-shaped content (stored prompt injection). off will scan nothing and cost nothing. annotate will forward every value unchanged and record what it found. block will additionally refuse the statement with an error naming the column, and never drop a row silently. A proxy build without result-content scanning ignores this field.
+    content_scan_mode: NotRequired[Literal["off", "annotate", "block"]]
+    # Byte budget for one statement's content scan, spanning all values in the result. Stored but not yet read by any released proxy build, like content_scan_mode. Once enforced, values past it are reported unscannable rather than skipped quietly. 0 uses the scanner default (4 MiB), which covers an interactive result set and deliberately does not cover a bulk export.
+    content_scan_max_bytes: NotRequired[int]
 
 
 class PolicyRecommendation(TypedDict):
