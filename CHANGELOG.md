@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.2
+
+### Patch Changes
+
+- 3342c65: feat(policy): content_scan_mode and content_scan_max_bytes on the policy profile
+
 ## 0.2.1
 
 ### Patch Changes

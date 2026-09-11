@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pgbeam"
-version = "0.2.1"
+version = "0.2.2"
 description = "Python SDK for the PgBeam API, a Postgres proxy for safe AI agent access with policy enforcement in the wire protocol"
 readme = "README.md"
 license = "Apache-2.0"
