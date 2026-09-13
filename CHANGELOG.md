@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.3
+
+### Patch Changes
+
+- a5fbfca: feat(proxy): scan result content on the wire for agent-directed text
+
 ## 0.2.2
 
 ### Patch Changes
