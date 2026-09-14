@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.6
+
+### Patch Changes
+
+- 40af2fb: feat(proxy,api): raise an anomaly alert for a high-confidence content-scan finding
+
 ## 0.2.5
 
 ### Patch Changes
