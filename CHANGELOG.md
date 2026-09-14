@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.5
+
+### Patch Changes
+
+- e3ca897: Update dependencies
+
 ## 0.2.4
 
 ### Patch Changes
