@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.7
+
+### Patch Changes
+
+- e4af35f: Update dependencies
+
 ## 0.2.6
 
 ### Patch Changes
