@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.8
+
+### Patch Changes
+
+- a9c235e: feat(api): anomaly rules, the authoring surface (roadmap item 4, slice 3)
+
 ## 0.2.7
 
 ### Patch Changes
