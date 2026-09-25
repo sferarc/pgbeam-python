@@ -161,6 +161,17 @@ OPERATIONS_BY_TAG: dict[str, dict[str, OperationMeta]] = {
         "update_anomaly_alert": OperationMeta(
             "PATCH", "/v1/projects/{project_id}/anomalies/{anomaly_id}"
         ),
+        "list_anomaly_rules": OperationMeta("GET", "/v1/projects/{project_id}/anomaly-rules"),
+        "create_anomaly_rule": OperationMeta("POST", "/v1/projects/{project_id}/anomaly-rules"),
+        "get_anomaly_rule": OperationMeta(
+            "GET", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+        ),
+        "update_anomaly_rule": OperationMeta(
+            "PUT", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+        ),
+        "delete_anomaly_rule": OperationMeta(
+            "DELETE", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+        ),
     },
     "branches": {
         "list_database_branches": OperationMeta("GET", "/v1/projects/{project_id}/branches"),
@@ -282,6 +293,21 @@ OPERATIONS_BY_PATH: dict[str, OperationMeta] = {
     ),
     "PATCH /v1/projects/{project_id}/anomalies/{anomaly_id}": OperationMeta(
         "PATCH", "/v1/projects/{project_id}/anomalies/{anomaly_id}"
+    ),
+    "GET /v1/projects/{project_id}/anomaly-rules": OperationMeta(
+        "GET", "/v1/projects/{project_id}/anomaly-rules"
+    ),
+    "POST /v1/projects/{project_id}/anomaly-rules": OperationMeta(
+        "POST", "/v1/projects/{project_id}/anomaly-rules"
+    ),
+    "GET /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}": OperationMeta(
+        "GET", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+    ),
+    "PUT /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}": OperationMeta(
+        "PUT", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+    ),
+    "DELETE /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}": OperationMeta(
+        "DELETE", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
     ),
     "GET /v1/projects/{project_id}/approvals": OperationMeta(
         "GET", "/v1/projects/{project_id}/approvals"

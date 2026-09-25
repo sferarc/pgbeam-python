@@ -19,6 +19,8 @@ from .models import (
     AgentCredentialSecrets,
     AgentUsageReport,
     AnomalyAlert,
+    AnomalyRule,
+    AnomalyRuleInput,
     ApprovalDecisionRequest,
     ApprovalRequest,
     AuditChainVerification,
@@ -54,6 +56,7 @@ from .models import (
     HoneytokenInput,
     ListAgentCredentialsResponse,
     ListAnomalyAlertsResponse,
+    ListAnomalyRulesResponse,
     ListApprovalRequestsResponse,
     ListAuditLogsResponse,
     ListCacheRulesResponse,
@@ -2064,6 +2067,150 @@ class AnomaliesService:
                 body=body,
             ),
         )
+
+    def list_anomaly_rules(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListAnomalyRulesResponse:
+        """List anomaly rules.
+
+        Lists the project's anomaly rules, including silenced ones.
+
+        ``GET /v1/projects/{project_id}/anomaly-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListAnomalyRulesResponse,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/anomaly-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    def create_anomaly_rule(
+        self,
+        project_id: str,
+        *,
+        body: AnomalyRuleInput,
+    ) -> AnomalyRule:
+        """Create an anomaly rule.
+
+        Retunes one detection metric for this project, or for one agent credential in it. Without a rule every metric resolves to the deployment default. A rule adds no detection algorithm and no alert kind: it changes how sensitive one of the five existing metrics is. enabled=false silences that metric for that scope; the baseline keeps advancing, so re-enabling resumes from the existing history rather than a cold warm-up.
+
+        ``POST /v1/projects/{project_id}/anomaly-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            AnomalyRule,
+            self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/anomaly-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    def get_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+    ) -> AnomalyRule:
+        """Get an anomaly rule.
+
+        Returns a single anomaly rule by ID.
+
+        ``GET /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+        """
+        return cast(
+            AnomalyRule,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "anomaly_rule_id": anomaly_rule_id,
+                },
+            ),
+        )
+
+    def update_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+        *,
+        body: AnomalyRuleInput,
+    ) -> AnomalyRule:
+        """Update an anomaly rule.
+
+        Replaces the rule's scope, metric and sensitivity. A rule whose enabled flag is turned off silences its metric for its scope rather than being deactivated.
+
+        ``PUT /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+            body: The request body.
+        """
+        return cast(
+            AnomalyRule,
+            self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "anomaly_rule_id": anomaly_rule_id,
+                },
+                body=body,
+            ),
+        )
+
+    def delete_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+    ) -> None:
+        """Delete an anomaly rule.
+
+        Removes the rule, so its metric returns to the deployment default for that scope. Deleting a rule that was silencing a metric turns that metric's alerts back on.
+
+        ``DELETE /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+        """
+        self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+            path_params={
+                "project_id": project_id,
+                "anomaly_rule_id": anomaly_rule_id,
+            },
+        )
+        return None
 
 
 class BranchesService:
@@ -5091,6 +5238,150 @@ class AsyncAnomaliesService:
                 body=body,
             ),
         )
+
+    async def list_anomaly_rules(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListAnomalyRulesResponse:
+        """List anomaly rules.
+
+        Lists the project's anomaly rules, including silenced ones.
+
+        ``GET /v1/projects/{project_id}/anomaly-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListAnomalyRulesResponse,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/anomaly-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    async def create_anomaly_rule(
+        self,
+        project_id: str,
+        *,
+        body: AnomalyRuleInput,
+    ) -> AnomalyRule:
+        """Create an anomaly rule.
+
+        Retunes one detection metric for this project, or for one agent credential in it. Without a rule every metric resolves to the deployment default. A rule adds no detection algorithm and no alert kind: it changes how sensitive one of the five existing metrics is. enabled=false silences that metric for that scope; the baseline keeps advancing, so re-enabling resumes from the existing history rather than a cold warm-up.
+
+        ``POST /v1/projects/{project_id}/anomaly-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            AnomalyRule,
+            await self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/anomaly-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def get_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+    ) -> AnomalyRule:
+        """Get an anomaly rule.
+
+        Returns a single anomaly rule by ID.
+
+        ``GET /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+        """
+        return cast(
+            AnomalyRule,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "anomaly_rule_id": anomaly_rule_id,
+                },
+            ),
+        )
+
+    async def update_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+        *,
+        body: AnomalyRuleInput,
+    ) -> AnomalyRule:
+        """Update an anomaly rule.
+
+        Replaces the rule's scope, metric and sensitivity. A rule whose enabled flag is turned off silences its metric for its scope rather than being deactivated.
+
+        ``PUT /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+            body: The request body.
+        """
+        return cast(
+            AnomalyRule,
+            await self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "anomaly_rule_id": anomaly_rule_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def delete_anomaly_rule(
+        self,
+        project_id: str,
+        anomaly_rule_id: str,
+    ) -> None:
+        """Delete an anomaly rule.
+
+        Removes the rule, so its metric returns to the deployment default for that scope. Deleting a rule that was silencing a metric turns that metric's alerts back on.
+
+        ``DELETE /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            anomaly_rule_id: Unique anomaly rule identifier (prefixed, e.g. anr_xxx).
+        """
+        await self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}",
+            path_params={
+                "project_id": project_id,
+                "anomaly_rule_id": anomaly_rule_id,
+            },
+        )
+        return None
 
 
 class AsyncBranchesService:

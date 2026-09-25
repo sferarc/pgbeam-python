@@ -36,6 +36,9 @@ __all__ = [
     "AgentUsageMarginalRates",
     "AgentUsageReport",
     "AnomalyAlert",
+    "AnomalyMetric",
+    "AnomalyRule",
+    "AnomalyRuleInput",
     "ApprovalDecisionRequest",
     "ApprovalRequest",
     "AssignableOrgRole",
@@ -99,6 +102,7 @@ __all__ = [
     "LatencySummary",
     "ListAgentCredentialsResponse",
     "ListAnomalyAlertsResponse",
+    "ListAnomalyRulesResponse",
     "ListApprovalRequestsResponse",
     "ListAuditLogsResponse",
     "ListCacheRulesResponse",
@@ -515,6 +519,48 @@ class AnomalyAlert(TypedDict):
     acknowledged_at: NotRequired[str | None]
     # User who acknowledged the alert, if any.
     acknowledged_by: NotRequired[str | None]
+
+
+# One of the five detection metrics. A rule retunes how sensitive one of them is; it adds no detection algorithm and no alert kind.
+AnomalyMetric = Literal[
+    "queries_per_hour", "bytes_per_hour", "distinct_shapes", "errors_per_hour", "active_hours"
+]
+
+
+class AnomalyRule(TypedDict):
+    """Per-project (and optionally per-credential) sensitivity for one detection metric. Without a rule every metric resolves to the deployment default, so a noisy credential cannot be loosened, a sensitive one cannot be tightened, and off-hours cannot be silenced for a credential that legitimately runs at 3am."""
+
+    # Unique anomaly rule identifier.
+    id: str
+    # Project the rule belongs to.
+    project_id: str
+    # Agent credential the rule applies to. Null applies it to every credential in the project.
+    credential_id: NotRequired[str | None]
+    metric: AnomalyMetric
+    # N in the "mean + N * dispersion" spike rule. Null leaves the deployment default in place.
+    sigma_threshold: NotRequired[float | None]
+    # Absolute floor below which the metric never alerts. Null leaves the deployment default in place. Only queries_per_hour, bytes_per_hour and errors_per_hour have a floor.
+    floor: NotRequired[float | None]
+    # False silences this metric for this scope. Note the polarity is the opposite of honeytokens.enabled: the rule IS the switch, so disabling it disables the metric rather than deactivating the rule.
+    enabled: bool
+    # When the rule was created.
+    created_at: str
+    # When the rule was last updated.
+    updated_at: str
+
+
+class AnomalyRuleInput(TypedDict):
+    """Request body for creating or updating an anomaly rule. One rule exists per (project, credential, metric); creating a second for the same scope is a conflict."""
+
+    # Agent credential to scope the rule to. Null or omitted applies it to every credential in the project. The credential must belong to this project.
+    credential_id: NotRequired[str | None]
+    metric: AnomalyMetric
+    # N in the "mean + N * dispersion" spike rule. Must be greater than zero; the detector reads any value at or below zero as "use the default", so a stored zero could never mean what setting it would suggest. Rejected for distinct_shapes and active_hours, which have no rate for sigma to put a threshold on. Null or omitted leaves the deployment default in place.
+    sigma_threshold: NotRequired[float | None]
+    # Absolute floor below which the metric never alerts. Must be greater than zero, for the same reason as sigma_threshold. Rejected for distinct_shapes and active_hours, which have no rate for a floor to bound. Null or omitted leaves the deployment default in place.
+    floor: NotRequired[float | None]
+    # False silences this metric for this scope. The baseline keeps advancing while it is silenced, so re-enabling resumes from the existing history rather than a cold warm-up.
+    enabled: NotRequired[bool]
 
 
 class ApprovalDecisionRequest(TypedDict):
@@ -1494,6 +1540,15 @@ class ListAnomalyAlertsResponse(TypedDict):
     # Anomaly alerts on the current page.
     anomalies: list[AnomalyAlert]
     # Token for the next page. Empty if no more results.
+    next_page_token: NotRequired[str]
+
+
+class ListAnomalyRulesResponse(TypedDict):
+    """Cursor-paginated anomaly rules for a project."""
+
+    # Anomaly rules on the current page.
+    anomaly_rules: list[AnomalyRule]
+    # Opaque token for cursor-based pagination.
     next_page_token: NotRequired[str]
 
 
