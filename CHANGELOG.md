@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.9
+
+### Patch Changes
+
+- 16ed7f3: feat(proxy): content_scan_mode=block now blocks, and it does it out loud (roadmap item 7, rung 3)
+
 ## 0.2.8
 
 ### Patch Changes
