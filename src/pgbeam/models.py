@@ -595,6 +595,8 @@ class ApprovalRequest(TypedDict):
     estimated_rows: NotRequired[int | None]
     # Relations the statement touches, from the gateway's parse analysis.
     target_tables: NotRequired[list[str]]
+    # Name of the approval rule that held the statement, as it was named when the statement was held. Null when the policy profile's approval_mode held it rather than a rule.
+    approval_rule_name: NotRequired[str | None]
     # Current state of the approval request.
     status: Literal["pending", "approved", "rejected", "expired", "executed", "failed"]
     # Human-readable note attached to a decision.
