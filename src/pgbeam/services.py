@@ -19,6 +19,7 @@ from .models import (
     AgentCredentialSecrets,
     AgentUsageReport,
     AnomalyAlert,
+    AnomalyKind,
     AnomalyRule,
     AnomalyRuleInput,
     ApprovalDecisionRequest,
@@ -2006,18 +2007,20 @@ class AnomaliesService:
         project_id: str,
         *,
         status: Literal["open", "acknowledged", "resolved"] | None = None,
+        kind: AnomalyKind | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
     ) -> ListAnomalyAlertsResponse:
         """List anomaly alerts.
 
-        Lists anomaly alerts for the project, newest first, optionally filtered by status.
+        Lists anomaly alerts for the project, newest first, optionally filtered by status and kind.
 
         ``GET /v1/projects/{project_id}/anomalies``
 
         Args:
             project_id: Unique project identifier (prefixed, e.g. prj_xxx).
             status: Filter to a single status.
+            kind: Filter to a single anomaly kind.
             page_size: Maximum number of items to return (1-100, default 20).
             page_token: Opaque token for cursor-based pagination.
         """
@@ -2031,6 +2034,7 @@ class AnomaliesService:
                 },
                 query={
                     "status": status,
+                    "kind": kind,
                     "page_size": page_size,
                     "page_token": page_token,
                 },
@@ -5177,18 +5181,20 @@ class AsyncAnomaliesService:
         project_id: str,
         *,
         status: Literal["open", "acknowledged", "resolved"] | None = None,
+        kind: AnomalyKind | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
     ) -> ListAnomalyAlertsResponse:
         """List anomaly alerts.
 
-        Lists anomaly alerts for the project, newest first, optionally filtered by status.
+        Lists anomaly alerts for the project, newest first, optionally filtered by status and kind.
 
         ``GET /v1/projects/{project_id}/anomalies``
 
         Args:
             project_id: Unique project identifier (prefixed, e.g. prj_xxx).
             status: Filter to a single status.
+            kind: Filter to a single anomaly kind.
             page_size: Maximum number of items to return (1-100, default 20).
             page_token: Opaque token for cursor-based pagination.
         """
@@ -5202,6 +5208,7 @@ class AsyncAnomaliesService:
                 },
                 query={
                     "status": status,
+                    "kind": kind,
                     "page_size": page_size,
                     "page_token": page_token,
                 },

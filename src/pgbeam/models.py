@@ -36,6 +36,7 @@ __all__ = [
     "AgentUsageMarginalRates",
     "AgentUsageReport",
     "AnomalyAlert",
+    "AnomalyKind",
     "AnomalyMetric",
     "AnomalyRule",
     "AnomalyRuleInput",
@@ -499,7 +500,7 @@ class AnomalyAlert(TypedDict):
     project_id: str
     # Agent credential implicated, if any.
     credential_id: NotRequired[str | None]
-    # Machine-readable anomaly kind (e.g. egress_spike, novel_query_shape).
+    # Machine-readable anomaly kind, one of the AnomalyKind values (e.g. egress_spike, new_query_shape). A string rather than the enum so a client built before a new kind ships still reads the alert.
     kind: str
     # Alert severity.
     severity: Literal["info", "warning", "critical"]
@@ -520,6 +521,17 @@ class AnomalyAlert(TypedDict):
     # User who acknowledged the alert, if any.
     acknowledged_by: NotRequired[str | None]
 
+
+# Every kind of anomaly alert the platform raises: the five detector kinds, a honeytoken trip, and a high-confidence result-content scan finding.
+AnomalyKind = Literal[
+    "volume_spike",
+    "egress_spike",
+    "new_query_shape",
+    "off_hours",
+    "error_spike",
+    "canary_tripped",
+    "content_flagged",
+]
 
 # One of the five detection metrics. A rule retunes how sensitive one of them is; it adds no detection algorithm and no alert kind.
 AnomalyMetric = Literal[
