@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.2.10
+
+### Patch Changes
+
+- b821f90: Approval requests carry `approval_rule_name`, the approval rule that held the statement.
+
 ## 0.2.9
 
 ### Patch Changes
