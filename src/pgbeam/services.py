@@ -793,7 +793,7 @@ class DatabasesService:
     ) -> ScanPiiResult:
         """Scan a database for likely-PII columns.
 
-        Connects to the upstream database read-only, inspects information_schema and samples column values against PII heuristics, and returns ranked masking suggestions. Suggestions are advisory — the operator reviews them and applies the ones they want into a policy profile's masking rules. Nothing is auto-applied.
+        Connects to the upstream database read-only, inspects information_schema and samples column values against PII heuristics, and returns ranked masking suggestions. Suggestions are advisory: the operator reviews them and applies the ones they want into a policy profile's masking rules. Nothing is auto-applied.
 
         ``POST /v1/projects/{project_id}/databases/{database_id}/scan-pii``
 
@@ -820,7 +820,7 @@ class DatabasesService:
     ) -> SchemaCatalog:
         """Read a database's schema catalog.
 
-        Connects to the upstream database read-only and returns its user relations (tables and views) and columns. Powers table/column autocomplete and view-aware warnings in the policy editor — relation kind distinguishes a view (whose masking/row-filters apply to the view itself, not its base tables) from a base table, and a per-column is_binary flag flags columns that mask to NULL. System schemas are excluded; nothing is persisted.
+        Connects to the upstream database read-only and returns its user relations (tables and views) and columns. Powers table/column autocomplete and view-aware warnings in the policy editor. Relation kind distinguishes a view (whose masking/row-filters apply to the view itself, not its base tables) from a base table, and a per-column is_binary flag flags columns that mask to NULL. System schemas are excluded; nothing is persisted.
 
         ``GET /v1/projects/{project_id}/databases/{database_id}/schema-catalog``
 
@@ -3964,7 +3964,7 @@ class AsyncDatabasesService:
     ) -> ScanPiiResult:
         """Scan a database for likely-PII columns.
 
-        Connects to the upstream database read-only, inspects information_schema and samples column values against PII heuristics, and returns ranked masking suggestions. Suggestions are advisory — the operator reviews them and applies the ones they want into a policy profile's masking rules. Nothing is auto-applied.
+        Connects to the upstream database read-only, inspects information_schema and samples column values against PII heuristics, and returns ranked masking suggestions. Suggestions are advisory: the operator reviews them and applies the ones they want into a policy profile's masking rules. Nothing is auto-applied.
 
         ``POST /v1/projects/{project_id}/databases/{database_id}/scan-pii``
 
@@ -3991,7 +3991,7 @@ class AsyncDatabasesService:
     ) -> SchemaCatalog:
         """Read a database's schema catalog.
 
-        Connects to the upstream database read-only and returns its user relations (tables and views) and columns. Powers table/column autocomplete and view-aware warnings in the policy editor — relation kind distinguishes a view (whose masking/row-filters apply to the view itself, not its base tables) from a base table, and a per-column is_binary flag flags columns that mask to NULL. System schemas are excluded; nothing is persisted.
+        Connects to the upstream database read-only and returns its user relations (tables and views) and columns. Powers table/column autocomplete and view-aware warnings in the policy editor. Relation kind distinguishes a view (whose masking/row-filters apply to the view itself, not its base tables) from a base table, and a per-column is_binary flag flags columns that mask to NULL. System schemas are excluded; nothing is persisted.
 
         ``GET /v1/projects/{project_id}/databases/{database_id}/schema-catalog``
 

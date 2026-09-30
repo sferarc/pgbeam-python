@@ -1391,7 +1391,7 @@ class DryEvalMaskedColumn(TypedDict):
 class DryEvalResult(TypedDict):
     """The decision the proxy would reach for the supplied statement under the supplied policy. verdict is the headline outcome; the remaining fields detail why."""
 
-    # allow — permitted unchanged; block — rejected; mask — permitted but listed result columns are masked; row-filter — permitted but a WHERE predicate is injected (and any listed columns are also masked).
+    # allow: permitted unchanged; block: rejected; mask: permitted but listed result columns are masked; row-filter: permitted but a WHERE predicate is injected (and any listed columns are also masked).
     verdict: Literal["allow", "block", "mask", "row-filter"]
     # Machine-readable decision tag. For a block, the blocking rule (e.g. read_only, table_denied, table_not_allowed, statement_denied, row_filter_unsafe). Otherwise "ok".
     rule: str
@@ -2015,7 +2015,7 @@ class PaymentResource(TypedDict):
 
 
 class PiiSuggestion(TypedDict):
-    """A single likely-PII column detected by the scanner, with a recommended masking rule. Suggestions are advisory only — nothing is applied until the operator reviews and adds it to a policy profile."""
+    """A single likely-PII column detected by the scanner, with a recommended masking rule. Suggestions are advisory only: nothing is applied until the operator reviews and adds it to a policy profile."""
 
     # Schema the column belongs to (e.g. "public").
     schema: str
@@ -2640,7 +2640,7 @@ class SchemaCatalogColumn(TypedDict):
     name: str
     # PostgreSQL data type (information_schema.data_type).
     data_type: str
-    # True for binary-typed columns (e.g. bytea). Masking a binary column always returns NULL — a redact/hash token would corrupt the wire type — so the editor warns when a masking rule targets one.
+    # True for binary-typed columns (e.g. bytea). Masking a binary column always returns NULL, because a redact/hash token would corrupt the wire type, so the editor warns when a masking rule targets one.
     is_binary: bool
 
 
@@ -2651,7 +2651,7 @@ class SchemaCatalogRelation(TypedDict):
     schema: str
     # Relation name.
     name: str
-    # Relation kind. Allowlists, masking, and row-filters are enforced against the named relation itself, NOT through a view to its base tables — so a view over a row-filtered base table can leak. The editor warns when a policy entry targets a view.
+    # Relation kind. Allowlists, masking, and row-filters are enforced against the named relation itself, NOT through a view to its base tables, so a view over a row-filtered base table can leak. The editor warns when a policy entry targets a view.
     kind: Literal["table", "view", "materialized_view", "other"]
     # The relation's columns.
     columns: list[SchemaCatalogColumn]
