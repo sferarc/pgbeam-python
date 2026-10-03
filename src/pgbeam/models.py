@@ -662,7 +662,7 @@ class AuditChainVerification(TypedDict):
     verified_at: str
 
 
-# Coarse outcome filter that groups audit events. `allow` = query, auto_approved; `block` = blocked, budget_exhausted, auth_failed, credential_expired, canary_tripped, rejected, approval_expired; `mask` = masked; `truncate` = truncated. The progress events approval_requested, approved and migration_flagged group under no decision, and so does content_flagged: each belongs to a statement that records its own outcome as well, so grouping them would count that statement twice. auto_approved is not one of those: it is the only row an auto-approved write produces, so it groups under `allow` like any other completed statement.
+# Coarse outcome filter that groups audit events. `allow` = query, auto_approved; `block` = blocked, budget_exhausted, auth_failed, credential_expired, canary_tripped, rejected, approval_expired, result_withheld; `mask` = masked; `truncate` = truncated. Every `block` event except result_withheld leaves the database as it was; result_withheld is a statement that ran and whose result the agent was refused, so a write it made has committed. The progress events approval_requested, approved and migration_flagged group under no decision, and so does content_flagged: each belongs to a statement that records its own outcome as well, so grouping them would count that statement twice. auto_approved is not one of those: it is the only row an auto-approved write produces, so it groups under `allow` like any other completed statement.
 AuditDecision = Literal["allow", "block", "mask", "truncate"]
 
 
@@ -677,7 +677,7 @@ class AuditLogEntry(TypedDict):
     credential_id: NotRequired[str | None]
     # Data plane region that served the statement.
     region: NotRequired[str]
-    # Event type (query, auto_approved, blocked, masked, truncated, budget_exhausted, canary_tripped, rejected, approval_expired, auth_failed, credential_expired, approval_requested, approved, migration_flagged, content_flagged, entries_dropped). `approved` is a statement a reviewer released from an approval hold, which then runs and records its own outcome; `auto_approved` is a write a policy waved through without a human, and is the only row that write produces; `content_flagged` is not an outcome at all, but the result-content scan reporting instruction-shaped text in the values a statement returned, which were forwarded to the agent unchanged.
+    # Event type (query, auto_approved, blocked, masked, truncated, budget_exhausted, canary_tripped, rejected, approval_expired, auth_failed, credential_expired, approval_requested, approved, migration_flagged, content_flagged, result_withheld, entries_dropped). `approved` is a statement a reviewer released from an approval hold, which then runs and records its own outcome; `auto_approved` is a write a policy waved through without a human, and is the only row that write produces; `content_flagged` is not an outcome at all, but the result-content scan reporting instruction-shaped text in the values a statement returned. Under content_scan_mode=annotate those values were forwarded unchanged and the statement records query, masked or truncated. Under block the statement records `result_withheld` instead: it ran on the database, and the agent was sent an error (SQLSTATE 42501) in place of the flagged row and everything after it. rows_returned and bytes_out on that entry count what the agent received before the refusal.
     event: str
     # The statement text (truncated).
     sql: NotRequired[str]
