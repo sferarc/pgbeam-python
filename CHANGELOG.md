@@ -1,5 +1,13 @@
 # @pgbeam/python-sdk
 
+## 0.2.11
+
+### Patch Changes
+
+- eb77c5f: `listAnomalyAlerts` takes an optional `kind` filter, one of the new `AnomalyKind` enum values.
+- 9d6807d: The audit session summary carries `anomalies`: the alerts raised from the session's own entries, and separately the rate and shape alerts on its credentials whose window overlaps it. The field is absent when the caller's role does not hold `anomaly:read`. `pgbeam audit session` prints both lists.
+- d92dcdb: Reword five API descriptions that carried em dashes into every generated reference.
+
 ## 0.2.10
 
 ### Patch Changes
