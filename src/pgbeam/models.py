@@ -42,6 +42,9 @@ __all__ = [
     "AnomalyRuleInput",
     "ApprovalDecisionRequest",
     "ApprovalRequest",
+    "ApprovalRule",
+    "ApprovalRuleInput",
+    "ApprovalRuleStatementKind",
     "AssignableOrgRole",
     "AuditChainVerification",
     "AuditDecision",
@@ -106,6 +109,7 @@ __all__ = [
     "ListAnomalyAlertsResponse",
     "ListAnomalyRulesResponse",
     "ListApprovalRequestsResponse",
+    "ListApprovalRulesResponse",
     "ListAuditLogsResponse",
     "ListCacheRulesResponse",
     "ListCustomDomainsResponse",
@@ -623,6 +627,51 @@ class ApprovalRequest(TypedDict):
     # When the request expires if undecided.
     expires_at: str
 
+
+class ApprovalRule(TypedDict):
+    """A named, project-scoped rule that sends the agent statements it matches to a human for approval, whatever the policy profile's approval_mode says. A rule can only add approval: approval_mode stays the coarse switch and no rule can exempt a statement from it."""
+
+    # Unique approval rule identifier.
+    id: str
+    # Project the rule belongs to.
+    project_id: str
+    # Label shown to the reviewer on every approval request this rule holds. Unique within the project.
+    name: str
+    # Statement kinds the rule holds. Empty holds every kind.
+    statement_kinds: list[ApprovalRuleStatementKind]
+    # Schema the rule is scoped to. Null matches every schema.
+    schema_name: NotRequired[str | None]
+    # Relation the rule is scoped to. Null matches every relation. Without a schema it matches that name in every schema.
+    relation_name: NotRequired[str | None]
+    # Hold only statements affecting at least this many rows. Null holds every matching statement. A statement whose affected rows cannot be counted (DDL, a batch, a data-modifying CTE) is held regardless.
+    min_affected_rows: NotRequired[int | None]
+    # False switches the rule off, so it holds nothing.
+    enabled: bool
+    # When the rule was created.
+    created_at: str
+    # When the rule was last updated.
+    updated_at: str
+
+
+class ApprovalRuleInput(TypedDict):
+    """Request body for creating or updating an approval rule."""
+
+    # Label shown to the reviewer on every approval request this rule holds. Must be unique within the project and not blank.
+    name: str
+    # Statement kinds the rule holds. Empty or omitted holds every kind.
+    statement_kinds: NotRequired[list[ApprovalRuleStatementKind]]
+    # Schema to scope the rule to. Null, empty or omitted matches every schema.
+    schema_name: NotRequired[str | None]
+    # Relation to scope the rule to. Null, empty or omitted matches every relation. Without a schema it matches that name in every schema.
+    relation_name: NotRequired[str | None]
+    # Hold only statements affecting at least this many rows. Must be at least 1. Null or omitted holds every matching statement. The count is taken in a rolled-back trial run; a statement that reports no count (DDL, a batch, a data-modifying CTE) is held regardless.
+    min_affected_rows: NotRequired[int | None]
+    # False switches the rule off, so it holds nothing.
+    enabled: NotRequired[bool]
+
+
+# A statement kind an approval rule can hold. COPY and reads are not in the vocabulary: approval reasons about the same kinds approval_mode does.
+ApprovalRuleStatementKind = Literal["insert", "update", "delete", "ddl"]
 
 # A role that can be assigned through the member API. This is `OrgRole` without `owner`: ownership is transferred through a separate flow, so requesting it here is rejected with a 400.
 AssignableOrgRole = Literal[
@@ -1585,6 +1634,15 @@ class ListApprovalRequestsResponse(TypedDict):
     # Approval requests on the current page.
     approvals: list[ApprovalRequest]
     # Token for the next page. Empty if no more results.
+    next_page_token: NotRequired[str]
+
+
+class ListApprovalRulesResponse(TypedDict):
+    """Cursor-paginated approval rules for a project."""
+
+    # Approval rules on the current page.
+    approval_rules: list[ApprovalRule]
+    # Opaque token for cursor-based pagination.
     next_page_token: NotRequired[str]
 
 

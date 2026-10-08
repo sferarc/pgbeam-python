@@ -24,6 +24,8 @@ from .models import (
     AnomalyRuleInput,
     ApprovalDecisionRequest,
     ApprovalRequest,
+    ApprovalRule,
+    ApprovalRuleInput,
     AuditChainVerification,
     AuditDecision,
     AuditSessionSummary,
@@ -59,6 +61,7 @@ from .models import (
     ListAnomalyAlertsResponse,
     ListAnomalyRulesResponse,
     ListApprovalRequestsResponse,
+    ListApprovalRulesResponse,
     ListAuditLogsResponse,
     ListCacheRulesResponse,
     ListCustomDomainsResponse,
@@ -1465,6 +1468,150 @@ class ApprovalsService:
     def __init__(self, transport: Transport) -> None:
         self._transport = transport
 
+    def list_approval_rules(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListApprovalRulesResponse:
+        """List approval rules.
+
+        Lists the project's approval rules, including disabled ones.
+
+        ``GET /v1/projects/{project_id}/approval-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListApprovalRulesResponse,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/approval-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    def create_approval_rule(
+        self,
+        project_id: str,
+        *,
+        body: ApprovalRuleInput,
+    ) -> ApprovalRule:
+        """Create an approval rule.
+
+        Sends the agent statements the rule matches to a human for approval, whatever the policy profile's approval_mode says. A rule can only add approval; nothing here can exempt a statement from approval_mode. The rule is pushed to connected data planes when it is written. A reviewer sees its name on every approval request it holds. Returns 409 for an enabled rule while the organization has a live self-hosted data plane enrollment, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. A rule with enabled set to false is still accepted.
+
+        ``POST /v1/projects/{project_id}/approval-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            ApprovalRule,
+            self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/approval-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    def get_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+    ) -> ApprovalRule:
+        """Get an approval rule.
+
+        Returns a single approval rule by ID.
+
+        ``GET /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+        """
+        return cast(
+            ApprovalRule,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "approval_rule_id": approval_rule_id,
+                },
+            ),
+        )
+
+    def update_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+        *,
+        body: ApprovalRuleInput,
+    ) -> ApprovalRule:
+        """Update an approval rule.
+
+        Replaces the rule's name, statement kinds, scope, row threshold and enabled flag. An approval request already held keeps the name it was held under. Returns 409 when the update leaves the rule enabled while the organization has a live self-hosted data plane enrollment, for the same reason as create. Setting enabled to false is still accepted.
+
+        ``PUT /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+            body: The request body.
+        """
+        return cast(
+            ApprovalRule,
+            self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "approval_rule_id": approval_rule_id,
+                },
+                body=body,
+            ),
+        )
+
+    def delete_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+    ) -> None:
+        """Delete an approval rule.
+
+        Removes the rule, so the statements it matched are held only if the policy profile's approval_mode holds them. Approval requests it already held are not affected.
+
+        ``DELETE /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+        """
+        self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+            path_params={
+                "project_id": project_id,
+                "approval_rule_id": approval_rule_id,
+            },
+        )
+        return None
+
     def list_approval_requests(
         self,
         project_id: str,
@@ -2626,7 +2773,7 @@ class PlatformService:
     ) -> SelfHostEnrollmentSecret:
         """Issue a self-host enrollment token.
 
-        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan.
+        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. Disable those rules first; they can be saved with enabled set to false.
 
         ``POST /v1/organizations/{org_id}/self-host-enrollments``
 
@@ -4639,6 +4786,150 @@ class AsyncApprovalsService:
     def __init__(self, transport: AsyncTransport) -> None:
         self._transport = transport
 
+    async def list_approval_rules(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListApprovalRulesResponse:
+        """List approval rules.
+
+        Lists the project's approval rules, including disabled ones.
+
+        ``GET /v1/projects/{project_id}/approval-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListApprovalRulesResponse,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/approval-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    async def create_approval_rule(
+        self,
+        project_id: str,
+        *,
+        body: ApprovalRuleInput,
+    ) -> ApprovalRule:
+        """Create an approval rule.
+
+        Sends the agent statements the rule matches to a human for approval, whatever the policy profile's approval_mode says. A rule can only add approval; nothing here can exempt a statement from approval_mode. The rule is pushed to connected data planes when it is written. A reviewer sees its name on every approval request it holds. Returns 409 for an enabled rule while the organization has a live self-hosted data plane enrollment, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. A rule with enabled set to false is still accepted.
+
+        ``POST /v1/projects/{project_id}/approval-rules``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            ApprovalRule,
+            await self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/approval-rules",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def get_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+    ) -> ApprovalRule:
+        """Get an approval rule.
+
+        Returns a single approval rule by ID.
+
+        ``GET /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+        """
+        return cast(
+            ApprovalRule,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "approval_rule_id": approval_rule_id,
+                },
+            ),
+        )
+
+    async def update_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+        *,
+        body: ApprovalRuleInput,
+    ) -> ApprovalRule:
+        """Update an approval rule.
+
+        Replaces the rule's name, statement kinds, scope, row threshold and enabled flag. An approval request already held keeps the name it was held under. Returns 409 when the update leaves the rule enabled while the organization has a live self-hosted data plane enrollment, for the same reason as create. Setting enabled to false is still accepted.
+
+        ``PUT /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+            body: The request body.
+        """
+        return cast(
+            ApprovalRule,
+            await self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+                path_params={
+                    "project_id": project_id,
+                    "approval_rule_id": approval_rule_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def delete_approval_rule(
+        self,
+        project_id: str,
+        approval_rule_id: str,
+    ) -> None:
+        """Delete an approval rule.
+
+        Removes the rule, so the statements it matched are held only if the policy profile's approval_mode holds them. Approval requests it already held are not affected.
+
+        ``DELETE /v1/projects/{project_id}/approval-rules/{approval_rule_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            approval_rule_id: Unique approval rule identifier (prefixed, e.g. apl_xxx).
+        """
+        await self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/approval-rules/{approval_rule_id}",
+            path_params={
+                "project_id": project_id,
+                "approval_rule_id": approval_rule_id,
+            },
+        )
+        return None
+
     async def list_approval_requests(
         self,
         project_id: str,
@@ -5800,7 +6091,7 @@ class AsyncPlatformService:
     ) -> SelfHostEnrollmentSecret:
         """Issue a self-host enrollment token.
 
-        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan.
+        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. Disable those rules first; they can be saved with enabled set to false.
 
         ``POST /v1/organizations/{org_id}/self-host-enrollments``
 

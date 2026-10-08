@@ -108,6 +108,17 @@ OPERATIONS_BY_TAG: dict[str, dict[str, OperationMeta]] = {
         "get_agent_usage_breakdown": OperationMeta("GET", "/v1/projects/{project_id}/usage/agents"),
     },
     "approvals": {
+        "list_approval_rules": OperationMeta("GET", "/v1/projects/{project_id}/approval-rules"),
+        "create_approval_rule": OperationMeta("POST", "/v1/projects/{project_id}/approval-rules"),
+        "get_approval_rule": OperationMeta(
+            "GET", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
+        ),
+        "update_approval_rule": OperationMeta(
+            "PUT", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
+        ),
+        "delete_approval_rule": OperationMeta(
+            "DELETE", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
+        ),
         "list_approval_requests": OperationMeta("GET", "/v1/projects/{project_id}/approvals"),
         "approve_approval_request": OperationMeta(
             "POST", "/v1/projects/{project_id}/approvals/{approval_id}/approve"
@@ -308,6 +319,21 @@ OPERATIONS_BY_PATH: dict[str, OperationMeta] = {
     ),
     "DELETE /v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}": OperationMeta(
         "DELETE", "/v1/projects/{project_id}/anomaly-rules/{anomaly_rule_id}"
+    ),
+    "GET /v1/projects/{project_id}/approval-rules": OperationMeta(
+        "GET", "/v1/projects/{project_id}/approval-rules"
+    ),
+    "POST /v1/projects/{project_id}/approval-rules": OperationMeta(
+        "POST", "/v1/projects/{project_id}/approval-rules"
+    ),
+    "GET /v1/projects/{project_id}/approval-rules/{approval_rule_id}": OperationMeta(
+        "GET", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
+    ),
+    "PUT /v1/projects/{project_id}/approval-rules/{approval_rule_id}": OperationMeta(
+        "PUT", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
+    ),
+    "DELETE /v1/projects/{project_id}/approval-rules/{approval_rule_id}": OperationMeta(
+        "DELETE", "/v1/projects/{project_id}/approval-rules/{approval_rule_id}"
     ),
     "GET /v1/projects/{project_id}/approvals": OperationMeta(
         "GET", "/v1/projects/{project_id}/approvals"
