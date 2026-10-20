@@ -123,6 +123,7 @@ __all__ = [
     "ListPlansResponse",
     "ListPolicyProfilesResponse",
     "ListProjectsResponse",
+    "ListQueryTemplatesResponse",
     "ListRegionsResponse",
     "ListReplicasResponse",
     "ListSchemaAnnotationsResponse",
@@ -165,6 +166,11 @@ __all__ = [
     "ProjectStatus",
     "ProjectUsageResponse",
     "QueryInsight",
+    "QueryTemplate",
+    "QueryTemplateInput",
+    "QueryTemplateParam",
+    "QueryTemplateParamType",
+    "QueryTemplateStatementKind",
     "Region",
     "ReleaseDemoCredentialRequest",
     "Replica",
@@ -1759,6 +1765,15 @@ class ListProjectsResponse(TypedDict):
     next_page_token: NotRequired[str]
 
 
+class ListQueryTemplatesResponse(TypedDict):
+    """Cursor-paginated query templates for a project."""
+
+    # Query templates on the current page.
+    query_templates: list[QueryTemplate]
+    # Opaque token for cursor-based pagination.
+    next_page_token: NotRequired[str]
+
+
 class ListRegionsResponse(TypedDict):
     """Response envelope for available region queries."""
 
@@ -1833,7 +1848,7 @@ class McpRequest(TypedDict):
     id: NotRequired[str]
     # MCP method to invoke.
     method: Literal["initialize", "notifications/initialized", "tools/list", "tools/call", "ping"]
-    # Method-specific parameters.
+    # Method-specific parameters. For `tools/call`, `name` is one of the six registered tools (`search_endpoints`, `describe_endpoint`, `call_endpoint`, `list_skills`, `get_skill`, `install_skill`) and `arguments` holds its input; API operations are reached through `call_endpoint`, not called by name.
     params: NotRequired[dict[str, Any]]
 
 
@@ -2520,6 +2535,77 @@ class QueryInsight(TypedDict):
     p99_latency_ms: float
 
 
+class QueryTemplate(TypedDict):
+    """A named, parameterized statement, scoped to a project. A policy profile set to admit templates only lets its credentials run the project's enabled templates and nothing else. A template admits a statement; it never grants access. A statement it admits still meets the credential's whole policy (allowlists, masking, row filters, budgets and approvals)."""
+
+    # Unique query template identifier.
+    id: str
+    # Project the template belongs to.
+    project_id: str
+    # Name an agent invokes the template by. A lower-case identifier, unique within the project.
+    name: str
+    # What the template is for, shown to an agent that lists the templates.
+    description: str
+    # The statement, with its parameters as $1, $2 and so on. Exactly one SELECT, INSERT, UPDATE or DELETE. Matched on its parse tree, so whitespace, keyword case and comments do not matter and anything else does.
+    sql: str
+    # Declared parameters, in placeholder order.
+    params: list[QueryTemplateParam]
+    statement_kind: NotRequired[QueryTemplateStatementKind]
+    # True shows the SQL text to an agent that lists the templates. False shows only the name, description and parameters.
+    include_sql: bool
+    # False withdraws the template, so it admits nothing.
+    enabled: bool
+    # When the template was created.
+    created_at: str
+    # When the template was last updated.
+    updated_at: str
+
+
+class QueryTemplateInput(TypedDict):
+    """Request body for creating or updating a query template."""
+
+    # Name an agent invokes the template by. A lower-case identifier starting with a letter, at most 63 characters, unique within the project.
+    name: str
+    # What the template is for, shown to an agent that lists the templates.
+    description: NotRequired[str]
+    # The statement, with its parameters as $1, $2 and so on. Exactly one SELECT, INSERT, UPDATE or DELETE, at most 16384 bytes. Every placeholder must be declared in params and every declared parameter must be used.
+    sql: str
+    # Declared parameters, in placeholder order. Omitted means none.
+    params: NotRequired[list[QueryTemplateParam]]
+    # True shows the SQL text to an agent that lists the templates. Defaults to false, since a WHERE clause can itself be sensitive.
+    include_sql: NotRequired[bool]
+    # Defaults to true, so a template is admitted as soon as it is written. False saves it withdrawn.
+    enabled: NotRequired[bool]
+
+
+class QueryTemplateParam(TypedDict):
+    """One declared template parameter. Its position in the params array is its placeholder number, so the first entry is $1."""
+
+    # Parameter name, a lower-case identifier. Unique within the template. An agent passes the argument under this name.
+    name: str
+    type: QueryTemplateParamType
+    # True lets the argument be omitted or null, which binds SQL NULL. A parameter that is not nullable must be given a value.
+    nullable: NotRequired[bool]
+
+
+# The Postgres type a template parameter is declared as. An argument is checked against it and bound as a value of that type, never as SQL.
+QueryTemplateParamType = Literal[
+    "text",
+    "integer",
+    "bigint",
+    "double precision",
+    "numeric",
+    "boolean",
+    "uuid",
+    "date",
+    "timestamptz",
+    "jsonb",
+]
+
+# The statement kind a template compiles to. Absent on a stored template that no longer compiles, which a data plane skips rather than admits.
+QueryTemplateStatementKind = Literal["select", "insert", "update", "delete"]
+
+
 class Region(TypedDict):
     """Data plane region available for PgBeam traffic."""
 
@@ -2966,7 +3052,7 @@ class UpdateProjectRequest(TypedDict):
 class UpdateSpendLimitRequest(TypedDict):
     """Request body for updating an organization's monthly spend cap."""
 
-    # Monthly spend limit in dollars. Null to remove the limit.
+    # Monthly spend limit in dollars. Null to remove the limit. An active spend cap lifts only when the limit is removed or raised.
     spend_limit: NotRequired[float | None]
 
 

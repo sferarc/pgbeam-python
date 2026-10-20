@@ -85,6 +85,17 @@ OPERATIONS_BY_TAG: dict[str, dict[str, OperationMeta]] = {
         ),
         "dry_eval_policy": OperationMeta("POST", "/v1/projects/{project_id}/policy-evaluations"),
         "replay_policy": OperationMeta("POST", "/v1/projects/{project_id}/policy-replays"),
+        "list_query_templates": OperationMeta("GET", "/v1/projects/{project_id}/query-templates"),
+        "create_query_template": OperationMeta("POST", "/v1/projects/{project_id}/query-templates"),
+        "get_query_template": OperationMeta(
+            "GET", "/v1/projects/{project_id}/query-templates/{query_template_id}"
+        ),
+        "update_query_template": OperationMeta(
+            "PUT", "/v1/projects/{project_id}/query-templates/{query_template_id}"
+        ),
+        "delete_query_template": OperationMeta(
+            "DELETE", "/v1/projects/{project_id}/query-templates/{query_template_id}"
+        ),
     },
     "agents": {
         "list_agent_credentials": OperationMeta("GET", "/v1/projects/{project_id}/agents"),
@@ -500,6 +511,21 @@ OPERATIONS_BY_PATH: dict[str, OperationMeta] = {
     "DELETE /v1/projects/{project_id}": OperationMeta("DELETE", "/v1/projects/{project_id}"),
     "GET /v1/projects/{project_id}/metrics": OperationMeta(
         "GET", "/v1/projects/{project_id}/metrics"
+    ),
+    "GET /v1/projects/{project_id}/query-templates": OperationMeta(
+        "GET", "/v1/projects/{project_id}/query-templates"
+    ),
+    "POST /v1/projects/{project_id}/query-templates": OperationMeta(
+        "POST", "/v1/projects/{project_id}/query-templates"
+    ),
+    "GET /v1/projects/{project_id}/query-templates/{query_template_id}": OperationMeta(
+        "GET", "/v1/projects/{project_id}/query-templates/{query_template_id}"
+    ),
+    "PUT /v1/projects/{project_id}/query-templates/{query_template_id}": OperationMeta(
+        "PUT", "/v1/projects/{project_id}/query-templates/{query_template_id}"
+    ),
+    "DELETE /v1/projects/{project_id}/query-templates/{query_template_id}": OperationMeta(
+        "DELETE", "/v1/projects/{project_id}/query-templates/{query_template_id}"
     ),
     "GET /v1/regions": OperationMeta("GET", "/v1/regions"),
     "GET /v1/databases/{database_id}/replicas": OperationMeta(

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .models import FieldError
+
 __all__ = ["ApiError", "NetworkError", "PgBeamError", "describe_error", "extract_message"]
 
 
@@ -21,15 +23,25 @@ class PgBeamError(Exception):
 class ApiError(PgBeamError):
     """The API answered, and the answer was an error status.
 
-    ``status`` is the HTTP status code, ``body`` the decoded response body when
-    there was one. The message is pulled out of the body where the API supplied
-    one, because ``{"error": {"code": ..., "message": ...}}`` is what PgBeam
-    sends and a bare "Conflict" tells a reader nothing.
+    The API answers every error with an RFC 9457 problem document, so its
+    fields are lifted onto the error rather than left in ``body``. They are
+    ``None`` (``errors`` empty) when the body is not a problem document.
+
+    Branch on ``code``, not on the message: a 403 is either ``FORBIDDEN`` or
+    ``PLAN_LIMIT_REACHED``, and those are resolved in completely different
+    ways. The message is prose and may change between releases.
     """
 
     status: int
     status_text: str
     body: Any
+    code: str | None
+    type: str | None
+    title: str | None
+    detail: str | None
+    instance: str | None
+    request_id: str | None
+    errors: list[FieldError]
 
     def __init__(self, status: int, status_text: str, body: Any) -> None:
         message = extract_message(body) or status_text or f"HTTP {status}"
@@ -37,9 +49,17 @@ class ApiError(PgBeamError):
         self.status = status
         self.status_text = status_text
         self.body = body
+        problem: dict[str, Any] = body if isinstance(body, dict) else {}
+        self.code = _str(problem.get("code"))
+        self.type = _str(problem.get("type"))
+        self.title = _str(problem.get("title"))
+        self.detail = _str(problem.get("detail"))
+        self.instance = _str(problem.get("instance"))
+        self.request_id = _str(problem.get("request_id"))
+        self.errors = _field_errors(problem.get("errors"))
 
     def __repr__(self) -> str:
-        return f"ApiError(status={self.status!r}, message={str(self)!r})"
+        return f"ApiError(status={self.status!r}, code={self.code!r}, message={str(self)!r})"
 
 
 class NetworkError(PgBeamError):
@@ -83,9 +103,17 @@ class NetworkError(PgBeamError):
 
 
 def extract_message(body: Any) -> str | None:
-    """Pull a human-readable message out of an API error body."""
+    """Pull a human-readable message out of an API error body.
+
+    A problem document's ``detail`` comes first. The legacy shapes are still
+    read because the edge MCP endpoint answers ``{"error": {"message": ...}}``
+    and Echo's default is ``{"message": ...}``.
+    """
     if not isinstance(body, dict):
         return None
+    detail = body.get("detail")
+    if isinstance(detail, str):
+        return detail
     error = body.get("error")
     if isinstance(error, dict):
         message = error.get("message")
@@ -94,7 +122,30 @@ def extract_message(body: Any) -> str | None:
     message = body.get("message")
     if isinstance(message, str):
         return message
+    title = body.get("title")
+    if isinstance(title, str) and _is_status(body.get("status")):
+        return title
     return None
+
+
+def _is_status(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _str(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _field_errors(value: Any) -> list[FieldError]:
+    if not isinstance(value, list):
+        return []
+    return [
+        FieldError(field=entry["field"], detail=entry["detail"])
+        for entry in value
+        if isinstance(entry, dict)
+        and isinstance(entry.get("field"), str)
+        and isinstance(entry.get("detail"), str)
+    ]
 
 
 def describe_error(err: BaseException | None, depth: int = 0) -> str:

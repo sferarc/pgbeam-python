@@ -37,6 +37,71 @@ class TestApiError:
         assert isinstance(ApiError(400, "Bad Request", None), PgBeamError)
 
 
+PROBLEM = {
+    "type": "https://pgbeam.com/docs/api/errors/plan-limit-reached",
+    "title": "Plan limit reached",
+    "status": 403,
+    "detail": "the Starter plan allows 3 projects",
+    "instance": "/v1/projects",
+    "code": "PLAN_LIMIT_REACHED",
+    "request_id": "req_abc123",
+    "errors": [
+        {"field": "database.host", "detail": "database host is required"},
+        {"field": "name"},
+        "not an object",
+    ],
+}
+
+
+class TestProblemDocument:
+    def test_lifts_every_field_off_a_full_document(self) -> None:
+        error = ApiError(403, "Forbidden", PROBLEM)
+        assert str(error) == "the Starter plan allows 3 projects"
+        assert error.code == "PLAN_LIMIT_REACHED"
+        assert error.type == PROBLEM["type"]
+        assert error.title == "Plan limit reached"
+        assert error.detail == "the Starter plan allows 3 projects"
+        assert error.instance == "/v1/projects"
+        assert error.request_id == "req_abc123"
+        assert error.errors == [{"field": "database.host", "detail": "database host is required"}]
+        assert error.status == 403
+        assert error.status_text == "Forbidden"
+        assert error.body is PROBLEM
+
+    def test_uses_the_title_when_there_is_no_detail(self) -> None:
+        body = {"type": "about:blank", "title": "Forbidden", "status": 403, "code": "FORBIDDEN"}
+        error = ApiError(403, "", body)
+        assert str(error) == "Forbidden"
+        assert error.code == "FORBIDDEN"
+        assert error.detail is None
+
+    def test_a_title_without_a_status_is_not_a_problem_document(self) -> None:
+        assert extract_message({"title": "a project name"}) is None
+
+    def test_detail_wins_over_the_legacy_shapes(self) -> None:
+        body = {"detail": "from detail", "error": {"message": "nested"}, "message": "flat"}
+        assert extract_message(body) == "from detail"
+
+    def test_fields_are_empty_when_the_body_is_not_a_problem_document(self) -> None:
+        error = ApiError(502, "Bad Gateway", "<html>upstream down</html>")
+        assert str(error) == "Bad Gateway"
+        assert error.code is None
+        assert error.type is None
+        assert error.title is None
+        assert error.detail is None
+        assert error.instance is None
+        assert error.request_id is None
+        assert error.errors == []
+
+    def test_legacy_nested_body_still_names_the_message(self) -> None:
+        error = ApiError(409, "Conflict", {"error": {"code": "conflict", "message": "exists"}})
+        assert str(error) == "exists"
+        assert error.code is None
+
+    def test_legacy_flat_body_still_names_the_message(self) -> None:
+        assert str(ApiError(400, "Bad Request", {"message": "bad input"})) == "bad input"
+
+
 class TestNetworkError:
     def test_names_the_call_and_the_reason(self) -> None:
         error = NetworkError(

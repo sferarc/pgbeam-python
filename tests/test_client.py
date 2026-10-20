@@ -108,6 +108,33 @@ class TestCalls:
         assert result == {"projects": [], "total": 0}
         assert route.call_count == 1
 
+    @respx.mock
+    def test_scan_text_sends_no_idempotency_key_under_default_retry(self) -> None:
+        # The server answers 400 to a key on this operation; retries stay on.
+        route = respx.post(f"{BASE}/v1/scan/text").mock(
+            side_effect=[
+                httpx.Response(503, headers={"Retry-After": "0"}),
+                httpx.Response(200, json={"action": "allow"}),
+            ]
+        )
+        with PgBeamClient(token="t", base_url=BASE) as client:
+            client.platform.scan_text(body={"text": "hello"})
+        assert route.call_count == 2
+        assert all(call.request.headers.get("idempotency-key") is None for call in route.calls)
+
+    @respx.mock
+    async def test_async_scan_text_sends_no_idempotency_key_under_default_retry(self) -> None:
+        route = respx.post(f"{BASE}/v1/scan/text").mock(
+            side_effect=[
+                httpx.Response(503, headers={"Retry-After": "0"}),
+                httpx.Response(200, json={"action": "allow"}),
+            ]
+        )
+        async with AsyncPgBeamClient(token="t", base_url=BASE) as client:
+            await client.platform.scan_text(body={"text": "hello"})
+        assert route.call_count == 2
+        assert all(call.request.headers.get("idempotency-key") is None for call in route.calls)
+
 
 def service_attributes(client_class: type) -> dict[str, str]:
     """Tag attribute to service class name, from the generated annotations."""

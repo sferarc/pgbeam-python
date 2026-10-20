@@ -115,6 +115,27 @@ class TestErrors:
         assert str(caught.value) == "already exists"
 
     @respx.mock
+    def test_api_error_carries_the_problem_code(self) -> None:
+        problem = {
+            "type": "https://pgbeam.com/docs/api/errors/plan-limit-reached",
+            "title": "Plan limit reached",
+            "status": 403,
+            "detail": "the Starter plan allows 3 projects",
+            "code": "PLAN_LIMIT_REACHED",
+            "request_id": "req_abc123",
+        }
+        respx.get(f"{BASE}/v1/x").mock(
+            return_value=httpx.Response(
+                403, json=problem, headers={"content-type": "application/problem+json"}
+            )
+        )
+        with make_transport() as transport, pytest.raises(ApiError) as caught:
+            transport.request("GET", "/v1/x")
+        assert caught.value.code == "PLAN_LIMIT_REACHED"
+        assert caught.value.request_id == "req_abc123"
+        assert str(caught.value) == "the Starter plan allows 3 projects"
+
+    @respx.mock
     def test_a_409_is_not_retried(self) -> None:
         route = respx.post(f"{BASE}/v1/x").mock(return_value=httpx.Response(409, json={}))
         with make_transport() as transport, pytest.raises(ApiError):

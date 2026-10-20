@@ -283,6 +283,7 @@ class Transport:
         path_params: Mapping[str, str] | None = None,
         query: Mapping[str, object] | None = None,
         body: object | None = None,
+        idempotency_key: bool = True,
     ) -> Any:
         url = _build_url(path, path_params)
         params = _build_query(query)
@@ -294,7 +295,12 @@ class Transport:
 
         # Generated once and reused, so every attempt at the same call carries
         # the same key and the server can collapse the duplicates.
-        if retry.max_retries > 0 and retry.idempotency_keys and method.upper() in MUTATING_METHODS:
+        if (
+            idempotency_key
+            and retry.max_retries > 0
+            and retry.idempotency_keys
+            and method.upper() in MUTATING_METHODS
+        ):
             headers.setdefault("Idempotency-Key", str(uuid.uuid4()))
 
         timeout = self._timeout_ms / 1000 if self._timeout_ms > 0 else None
@@ -402,6 +408,7 @@ class AsyncTransport:
         path_params: Mapping[str, str] | None = None,
         query: Mapping[str, object] | None = None,
         body: object | None = None,
+        idempotency_key: bool = True,
     ) -> Any:
         url = _build_url(path, path_params)
         params = _build_query(query)
@@ -411,7 +418,12 @@ class AsyncTransport:
         token = await self._resolve_token(attempt_ctx)
         headers = _headers(token, body is not None, self._headers, self._user_agent)
 
-        if retry.max_retries > 0 and retry.idempotency_keys and method.upper() in MUTATING_METHODS:
+        if (
+            idempotency_key
+            and retry.max_retries > 0
+            and retry.idempotency_keys
+            and method.upper() in MUTATING_METHODS
+        ):
             headers.setdefault("Idempotency-Key", str(uuid.uuid4()))
 
         timeout = self._timeout_ms / 1000 if self._timeout_ms > 0 else None

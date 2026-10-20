@@ -75,6 +75,7 @@ from .models import (
     ListPlansResponse,
     ListPolicyProfilesResponse,
     ListProjectsResponse,
+    ListQueryTemplatesResponse,
     ListRegionsResponse,
     ListReplicasResponse,
     ListSchemaAnnotationsResponse,
@@ -97,6 +98,8 @@ from .models import (
     ProjectInsights,
     ProjectMetricsResponse,
     ProjectUsageResponse,
+    QueryTemplate,
+    QueryTemplateInput,
     ReleaseDemoCredentialRequest,
     Replica,
     ScanPiiResult,
@@ -1081,6 +1084,150 @@ class PoliciesService:
                 body=body,
             ),
         )
+
+    def list_query_templates(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListQueryTemplatesResponse:
+        """List query templates.
+
+        Lists the project's query templates, including disabled ones.
+
+        ``GET /v1/projects/{project_id}/query-templates``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListQueryTemplatesResponse,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/query-templates",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    def create_query_template(
+        self,
+        project_id: str,
+        *,
+        body: QueryTemplateInput,
+    ) -> QueryTemplate:
+        """Create a query template.
+
+        Adds a named, parameterized statement to the project. A template admits a statement for a policy profile that runs templates only; it never grants access, and the statement still meets the credential's whole policy. The SQL is parsed and checked when it is written: exactly one SELECT, INSERT, UPDATE or DELETE, placeholders $1 to $n, one declared parameter for each. A template that fails is refused with 400 and a message naming the problem. Returns 409 when the project already has a template of that name. The template is pushed to connected data planes when it is written. Returns 409 for an enabled template while the organization has a live self-hosted data plane enrollment, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces templates. A template with enabled set to false is still accepted.
+
+        ``POST /v1/projects/{project_id}/query-templates``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            QueryTemplate,
+            self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/query-templates",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    def get_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+    ) -> QueryTemplate:
+        """Get a query template.
+
+        Returns a single query template by ID.
+
+        ``GET /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+        """
+        return cast(
+            QueryTemplate,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/query-templates/{query_template_id}",
+                path_params={
+                    "project_id": project_id,
+                    "query_template_id": query_template_id,
+                },
+            ),
+        )
+
+    def update_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+        *,
+        body: QueryTemplateInput,
+    ) -> QueryTemplate:
+        """Update a query template.
+
+        Replaces the template's name, description, SQL, parameters, include_sql and enabled flag. The SQL is checked as on create. A statement already admitted under the old template is not affected; the next one is matched against the new text. Returns 409 on a rename to a name the project already uses, and when the update leaves the template enabled while the organization has a live self-hosted data plane enrollment, for the same reason as create. Setting enabled to false is still accepted.
+
+        ``PUT /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+            body: The request body.
+        """
+        return cast(
+            QueryTemplate,
+            self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/query-templates/{query_template_id}",
+                path_params={
+                    "project_id": project_id,
+                    "query_template_id": query_template_id,
+                },
+                body=body,
+            ),
+        )
+
+    def delete_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+    ) -> None:
+        """Delete a query template.
+
+        Removes the template, so a profile that runs templates only stops admitting its statement. Deleting the last template is allowed: such a profile then admits nothing, which is the intended way to withdraw access in an incident.
+
+        ``DELETE /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+        """
+        self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/query-templates/{query_template_id}",
+            path_params={
+                "project_id": project_id,
+                "query_template_id": query_template_id,
+            },
+        )
+        return None
 
 
 class AgentsService:
@@ -2865,6 +3012,7 @@ class PlatformService:
                 "POST",
                 "/v1/scan/text",
                 body=body,
+                idempotency_key=False,
             ),
         )
 
@@ -4399,6 +4547,150 @@ class AsyncPoliciesService:
                 body=body,
             ),
         )
+
+    async def list_query_templates(
+        self,
+        project_id: str,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> ListQueryTemplatesResponse:
+        """List query templates.
+
+        Lists the project's query templates, including disabled ones.
+
+        ``GET /v1/projects/{project_id}/query-templates``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            page_size: Maximum number of items to return (1-100, default 20).
+            page_token: Opaque token for cursor-based pagination.
+        """
+        return cast(
+            ListQueryTemplatesResponse,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/query-templates",
+                path_params={
+                    "project_id": project_id,
+                },
+                query={
+                    "page_size": page_size,
+                    "page_token": page_token,
+                },
+            ),
+        )
+
+    async def create_query_template(
+        self,
+        project_id: str,
+        *,
+        body: QueryTemplateInput,
+    ) -> QueryTemplate:
+        """Create a query template.
+
+        Adds a named, parameterized statement to the project. A template admits a statement for a policy profile that runs templates only; it never grants access, and the statement still meets the credential's whole policy. The SQL is parsed and checked when it is written: exactly one SELECT, INSERT, UPDATE or DELETE, placeholders $1 to $n, one declared parameter for each. A template that fails is refused with 400 and a message naming the problem. Returns 409 when the project already has a template of that name. The template is pushed to connected data planes when it is written. Returns 409 for an enabled template while the organization has a live self-hosted data plane enrollment, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces templates. A template with enabled set to false is still accepted.
+
+        ``POST /v1/projects/{project_id}/query-templates``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            body: The request body.
+        """
+        return cast(
+            QueryTemplate,
+            await self._transport.request(
+                "POST",
+                "/v1/projects/{project_id}/query-templates",
+                path_params={
+                    "project_id": project_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def get_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+    ) -> QueryTemplate:
+        """Get a query template.
+
+        Returns a single query template by ID.
+
+        ``GET /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+        """
+        return cast(
+            QueryTemplate,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/query-templates/{query_template_id}",
+                path_params={
+                    "project_id": project_id,
+                    "query_template_id": query_template_id,
+                },
+            ),
+        )
+
+    async def update_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+        *,
+        body: QueryTemplateInput,
+    ) -> QueryTemplate:
+        """Update a query template.
+
+        Replaces the template's name, description, SQL, parameters, include_sql and enabled flag. The SQL is checked as on create. A statement already admitted under the old template is not affected; the next one is matched against the new text. Returns 409 on a rename to a name the project already uses, and when the update leaves the template enabled while the organization has a live self-hosted data plane enrollment, for the same reason as create. Setting enabled to false is still accepted.
+
+        ``PUT /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+            body: The request body.
+        """
+        return cast(
+            QueryTemplate,
+            await self._transport.request(
+                "PUT",
+                "/v1/projects/{project_id}/query-templates/{query_template_id}",
+                path_params={
+                    "project_id": project_id,
+                    "query_template_id": query_template_id,
+                },
+                body=body,
+            ),
+        )
+
+    async def delete_query_template(
+        self,
+        project_id: str,
+        query_template_id: str,
+    ) -> None:
+        """Delete a query template.
+
+        Removes the template, so a profile that runs templates only stops admitting its statement. Deleting the last template is allowed: such a profile then admits nothing, which is the intended way to withdraw access in an incident.
+
+        ``DELETE /v1/projects/{project_id}/query-templates/{query_template_id}``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            query_template_id: Unique query template identifier (prefixed, e.g. qtp_xxx).
+        """
+        await self._transport.request(
+            "DELETE",
+            "/v1/projects/{project_id}/query-templates/{query_template_id}",
+            path_params={
+                "project_id": project_id,
+                "query_template_id": query_template_id,
+            },
+        )
+        return None
 
 
 class AsyncAgentsService:
@@ -6183,6 +6475,7 @@ class AsyncPlatformService:
                 "POST",
                 "/v1/scan/text",
                 body=body,
+                idempotency_key=False,
             ),
         )
 
