@@ -404,7 +404,7 @@ wheels = [
 
 [[package]]
 name = "pgbeam"
-version = "0.1.0"
+version = "0.2.12"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

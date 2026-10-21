@@ -278,9 +278,6 @@ OPERATIONS_BY_TAG: dict[str, dict[str, OperationMeta]] = {
             "POST", "/v1/demo/credentials/{session_id}/release"
         ),
     },
-    "internal": {
-        "handle_slack_support_event": OperationMeta("POST", "/v1/internal/support/slack-event"),
-    },
     "payments": {
         "list_payment_resources": OperationMeta("GET", "/v1/payments/resources"),
         "create_budget_topup": OperationMeta("POST", "/v1/payments/budget-topups"),
@@ -572,9 +569,6 @@ OPERATIONS_BY_PATH: dict[str, OperationMeta] = {
     ),
     "POST /v1/organizations/{org_id}/support/cases/{case_id}/messages": OperationMeta(
         "POST", "/v1/organizations/{org_id}/support/cases/{case_id}/messages"
-    ),
-    "POST /v1/internal/support/slack-event": OperationMeta(
-        "POST", "/v1/internal/support/slack-event"
     ),
     "POST /v1/scan/text": OperationMeta("POST", "/v1/scan/text"),
     "GET /v1/organizations/{org_id}/usage": OperationMeta(

@@ -109,7 +109,6 @@ from .models import (
     SchemaAnnotationInput,
     SchemaCatalog,
     SelfHostEnrollmentSecret,
-    SlackEventPayload,
     SupportCase,
     SupportCaseStatus,
     SupportMessage,
@@ -148,7 +147,6 @@ __all__ = [
     "AsyncDatabasesService",
     "AsyncDemoService",
     "AsyncHoneytokensService",
-    "AsyncInternalService",
     "AsyncMigrationsService",
     "AsyncPaymentsService",
     "AsyncPgBeamClient",
@@ -163,7 +161,6 @@ __all__ = [
     "DatabasesService",
     "DemoService",
     "HoneytokensService",
-    "InternalService",
     "MigrationsService",
     "PaymentsService",
     "PgBeamClient",
@@ -3562,34 +3559,6 @@ class DemoService:
                 body=body,
             ),
         )
-
-
-class InternalService:
-    """The Internal operations, blocking. Reached as ``client.internal``."""
-
-    def __init__(self, transport: Transport) -> None:
-        self._transport = transport
-
-    def handle_slack_support_event(
-        self,
-        *,
-        body: SlackEventPayload,
-    ) -> None:
-        """Handle a Slack support event.
-
-        Receives a forwarded Slack event from the dashboard webhook handler and creates a support message.
-
-        ``POST /v1/internal/support/slack-event``
-
-        Args:
-            body: The request body.
-        """
-        self._transport.request(
-            "POST",
-            "/v1/internal/support/slack-event",
-            body=body,
-        )
-        return None
 
 
 class PaymentsService:
@@ -7027,34 +6996,6 @@ class AsyncDemoService:
         )
 
 
-class AsyncInternalService:
-    """The Internal operations, awaitable. Reached as ``client.internal``."""
-
-    def __init__(self, transport: AsyncTransport) -> None:
-        self._transport = transport
-
-    async def handle_slack_support_event(
-        self,
-        *,
-        body: SlackEventPayload,
-    ) -> None:
-        """Handle a Slack support event.
-
-        Receives a forwarded Slack event from the dashboard webhook handler and creates a support message.
-
-        ``POST /v1/internal/support/slack-event``
-
-        Args:
-            body: The request body.
-        """
-        await self._transport.request(
-            "POST",
-            "/v1/internal/support/slack-event",
-            body=body,
-        )
-        return None
-
-
 class AsyncPaymentsService:
     """The Payments operations, awaitable. Reached as ``client.payments``."""
 
@@ -7130,7 +7071,6 @@ class PgBeamClient(BaseClient):
     support: SupportService
     batch: BatchService
     demo: DemoService
-    internal: InternalService
     payments: PaymentsService
 
     def _bind_services(self) -> None:
@@ -7151,7 +7091,6 @@ class PgBeamClient(BaseClient):
         self.support = SupportService(self._transport)
         self.batch = BatchService(self._transport)
         self.demo = DemoService(self._transport)
-        self.internal = InternalService(self._transport)
         self.payments = PaymentsService(self._transport)
 
 
@@ -7183,7 +7122,6 @@ class AsyncPgBeamClient(BaseAsyncClient):
     support: AsyncSupportService
     batch: AsyncBatchService
     demo: AsyncDemoService
-    internal: AsyncInternalService
     payments: AsyncPaymentsService
 
     def _bind_services(self) -> None:
@@ -7204,5 +7142,4 @@ class AsyncPgBeamClient(BaseAsyncClient):
         self.support = AsyncSupportService(self._transport)
         self.batch = AsyncBatchService(self._transport)
         self.demo = AsyncDemoService(self._transport)
-        self.internal = AsyncInternalService(self._transport)
         self.payments = AsyncPaymentsService(self._transport)
