@@ -7,6 +7,9 @@ one.
 
 from __future__ import annotations
 
+import asyncio
+import time
+
 import httpx
 import pytest
 import respx
@@ -301,3 +304,158 @@ class TestAsyncParity:
         async with make_async_transport(token=token) as transport:
             await transport.request("GET", "/v1/x")
         assert route.calls[0].request.headers["authorization"] == "Bearer async_tok"
+
+
+SLOW = RetryConfig(
+    max_retries=3, initial_delay_ms=5_000, max_delay_ms=5_000, total_budget_ms=60_000
+)
+
+
+class _Server:
+    """Answers each attempt from a script and counts them."""
+
+    def __init__(self, *steps: httpx.Response | Exception) -> None:
+        self.steps = list(steps)
+        self.requests: list[httpx.Request] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        step = self.steps[min(len(self.requests), len(self.steps)) - 1]
+        if isinstance(step, Exception):
+            raise step
+        # A fresh copy, because one parametrized response serves both flavours.
+        return httpx.Response(step.status_code, headers=step.headers, content=step.content)
+
+
+def _call(flavour: str, server: _Server, method: str, **kwargs: object) -> object:
+    """Make one call through the sync or async transport with ``server`` behind it."""
+    retry = kwargs.pop("retry", FAST)
+    headers = kwargs.pop("headers", None)
+    body = {"name": "a"} if method in {"POST", "PATCH", "PUT"} else None
+    if flavour == "sync":
+        client = httpx.Client(base_url=BASE, transport=httpx.MockTransport(server))
+        with make_transport(retry=retry, headers=headers, http_client=client) as transport:
+            return transport.request(method, "/v1/x", body=body, **kwargs)  # type: ignore[arg-type]
+
+    async def run() -> object:
+        client = httpx.AsyncClient(base_url=BASE, transport=httpx.MockTransport(server))
+        async with make_async_transport(
+            retry=retry, headers=headers, http_client=client
+        ) as transport:
+            return await transport.request(method, "/v1/x", body=body, **kwargs)  # type: ignore[arg-type]
+
+    return asyncio.run(run())
+
+
+FLAVOURS = pytest.mark.parametrize("flavour", ["sync", "async"])
+UNKEYED = RetryConfig(
+    max_retries=3,
+    initial_delay_ms=1,
+    max_delay_ms=2,
+    total_budget_ms=60_000,
+    idempotency_keys=False,
+)
+
+
+@FLAVOURS
+class TestRetryAfterZero:
+    def test_retries_immediately(self, flavour: str) -> None:
+        server = _Server(
+            httpx.Response(429, headers={"Retry-After": "0"}), httpx.Response(200, json={})
+        )
+        started = time.monotonic()
+        assert _call(flavour, server, "GET", retry=SLOW) == {}
+        assert len(server.requests) == 2
+        assert time.monotonic() - started < 1
+
+    def test_a_date_in_the_past_retries_immediately(self, flavour: str) -> None:
+        past = {"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"}
+        server = _Server(httpx.Response(503, headers=past), httpx.Response(200, json={}))
+        started = time.monotonic()
+        assert _call(flavour, server, "GET", retry=SLOW) == {}
+        assert time.monotonic() - started < 1
+
+
+@FLAVOURS
+class TestUnkeyedWrites:
+    @pytest.mark.parametrize("method", ["POST", "PATCH"])
+    def test_a_read_timeout_is_not_retried(self, flavour: str, method: str) -> None:
+        server = _Server(httpx.ReadTimeout("slow"))
+        with pytest.raises(NetworkError) as caught:
+            _call(flavour, server, method, retry=UNKEYED)
+        assert caught.value.attempts == 1
+        assert caught.value.timed_out is True
+        assert len(server.requests) == 1
+
+    @pytest.mark.parametrize("status", [502, 504, 503])
+    def test_an_ambiguous_status_is_not_retried(self, flavour: str, status: int) -> None:
+        server = _Server(httpx.Response(status, json={}))
+        with pytest.raises(ApiError):
+            _call(flavour, server, "POST", retry=UNKEYED)
+        assert len(server.requests) == 1
+
+    @pytest.mark.parametrize(
+        "first",
+        [
+            httpx.ConnectError("refused"),
+            httpx.ConnectTimeout("no route"),
+            httpx.Response(408),
+            httpx.Response(429),
+            httpx.Response(503, headers={"Retry-After": "0"}),
+        ],
+        ids=["connect-error", "connect-timeout", "408", "429", "503-retry-after"],
+    )
+    def test_an_unprocessed_request_is_retried(
+        self, flavour: str, first: httpx.Response | Exception
+    ) -> None:
+        server = _Server(first, httpx.Response(201, json={"id": "a"}))
+        assert _call(flavour, server, "POST", retry=UNKEYED) == {"id": "a"}
+        assert len(server.requests) == 2
+        assert all("idempotency-key" not in r.headers for r in server.requests)
+
+    def test_a_scan_style_call_without_a_key_is_not_retried(self, flavour: str) -> None:
+        server = _Server(httpx.Response(502, json={}))
+        with pytest.raises(ApiError):
+            _call(flavour, server, "POST", idempotency_key=False)
+        assert len(server.requests) == 1
+
+
+@FLAVOURS
+class TestKeyedWritesAndOtherMethods:
+    @pytest.mark.parametrize(
+        "first",
+        [httpx.ReadTimeout("slow"), httpx.Response(502), httpx.Response(504), httpx.Response(503)],
+        ids=["read-timeout", "502", "504", "503"],
+    )
+    def test_an_auto_keyed_post_is_retried(
+        self, flavour: str, first: httpx.Response | Exception
+    ) -> None:
+        server = _Server(first, httpx.Response(201, json={}))
+        assert _call(flavour, server, "POST") == {}
+        assert len(server.requests) == 2
+
+    def test_a_key_from_client_headers_counts(self, flavour: str) -> None:
+        server = _Server(httpx.ReadTimeout("slow"), httpx.Response(201, json={}))
+        headers = {"idempotency-key": "mine"}
+        assert _call(flavour, server, "POST", retry=UNKEYED, headers=headers) == {}
+        assert [r.headers["idempotency-key"] for r in server.requests] == ["mine", "mine"]
+
+    def test_a_lowercase_client_key_is_not_joined_by_a_generated_one(self, flavour: str) -> None:
+        server = _Server(httpx.ReadTimeout("slow"), httpx.Response(201, json={}))
+        headers = {"idempotency-key": "mine"}
+        assert _call(flavour, server, "POST", headers=headers) == {}
+        assert [r.headers.get_list("idempotency-key") for r in server.requests] == [
+            ["mine"],
+            ["mine"],
+        ]
+
+    @pytest.mark.parametrize("method", ["GET", "PUT", "DELETE"])
+    def test_idempotent_methods_retry_everything(self, flavour: str, method: str) -> None:
+        server = _Server(
+            httpx.ReadTimeout("slow"),
+            httpx.Response(502),
+            httpx.Response(504),
+            httpx.Response(200, json={}),
+        )
+        assert _call(flavour, server, method, retry=UNKEYED) == {}
+        assert len(server.requests) == 4

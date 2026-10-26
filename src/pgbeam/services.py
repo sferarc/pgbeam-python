@@ -94,6 +94,7 @@ from .models import (
     PolicyRecommendationInput,
     PolicyReplayInput,
     PolicyReplayResult,
+    PolicyStatementKinds,
     Project,
     ProjectInsights,
     ProjectMetricsResponse,
@@ -1025,6 +1026,33 @@ class PoliciesService:
             },
         )
         return None
+
+    def get_policy_statement_kinds(
+        self,
+        project_id: str,
+        policy_id: str,
+    ) -> PolicyStatementKinds:
+        """List the statement kinds a policy permits.
+
+        Returns, for every statement kind the proxy classifies, whether this policy permits a statement of that kind, and when it does not, the rule and reason the proxy would refuse it with. The answer comes from the data plane's own policy engine rather than from the stored fields, so it resolves them the way enforcement does: COPY is refused whatever the allowlist says, deny beats allow, read_only is a ceiling the allowlist cannot lift, and an unclassified statement fails closed unless "other" is allowlisted. Each kind is judged on its own, with no relations and a WHERE clause, so table lists, masking, budgets and the other floors are not part of these verdicts.
+
+        ``GET /v1/projects/{project_id}/policies/{policy_id}/statement-kinds``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            policy_id: Unique policy profile identifier (prefixed, e.g. pol_xxx).
+        """
+        return cast(
+            PolicyStatementKinds,
+            self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/policies/{policy_id}/statement-kinds",
+                path_params={
+                    "project_id": project_id,
+                    "policy_id": policy_id,
+                },
+            ),
+        )
 
     def dry_eval_policy(
         self,
@@ -4460,6 +4488,33 @@ class AsyncPoliciesService:
             },
         )
         return None
+
+    async def get_policy_statement_kinds(
+        self,
+        project_id: str,
+        policy_id: str,
+    ) -> PolicyStatementKinds:
+        """List the statement kinds a policy permits.
+
+        Returns, for every statement kind the proxy classifies, whether this policy permits a statement of that kind, and when it does not, the rule and reason the proxy would refuse it with. The answer comes from the data plane's own policy engine rather than from the stored fields, so it resolves them the way enforcement does: COPY is refused whatever the allowlist says, deny beats allow, read_only is a ceiling the allowlist cannot lift, and an unclassified statement fails closed unless "other" is allowlisted. Each kind is judged on its own, with no relations and a WHERE clause, so table lists, masking, budgets and the other floors are not part of these verdicts.
+
+        ``GET /v1/projects/{project_id}/policies/{policy_id}/statement-kinds``
+
+        Args:
+            project_id: Unique project identifier (prefixed, e.g. prj_xxx).
+            policy_id: Unique policy profile identifier (prefixed, e.g. pol_xxx).
+        """
+        return cast(
+            PolicyStatementKinds,
+            await self._transport.request(
+                "GET",
+                "/v1/projects/{project_id}/policies/{policy_id}/statement-kinds",
+                path_params={
+                    "project_id": project_id,
+                    "policy_id": policy_id,
+                },
+            ),
+        )
 
     async def dry_eval_policy(
         self,

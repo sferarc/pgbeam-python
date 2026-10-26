@@ -83,6 +83,9 @@ OPERATIONS_BY_TAG: dict[str, dict[str, OperationMeta]] = {
         "delete_policy_profile": OperationMeta(
             "DELETE", "/v1/projects/{project_id}/policies/{policy_id}"
         ),
+        "get_policy_statement_kinds": OperationMeta(
+            "GET", "/v1/projects/{project_id}/policies/{policy_id}/statement-kinds"
+        ),
         "dry_eval_policy": OperationMeta("POST", "/v1/projects/{project_id}/policy-evaluations"),
         "replay_policy": OperationMeta("POST", "/v1/projects/{project_id}/policy-replays"),
         "list_query_templates": OperationMeta("GET", "/v1/projects/{project_id}/query-templates"),
@@ -494,6 +497,9 @@ OPERATIONS_BY_PATH: dict[str, OperationMeta] = {
     ),
     "DELETE /v1/projects/{project_id}/policies/{policy_id}": OperationMeta(
         "DELETE", "/v1/projects/{project_id}/policies/{policy_id}"
+    ),
+    "GET /v1/projects/{project_id}/policies/{policy_id}/statement-kinds": OperationMeta(
+        "GET", "/v1/projects/{project_id}/policies/{policy_id}/statement-kinds"
     ),
     "POST /v1/projects/{project_id}/policy-evaluations": OperationMeta(
         "POST", "/v1/projects/{project_id}/policy-evaluations"

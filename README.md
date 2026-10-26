@@ -27,7 +27,7 @@ with PgBeamClient(token="your-api-key") as client:
     project = client.projects.get_project(project_id="prj_123")
 ```
 
-Omit `token` and the client reads `PGBEAM_API_KEY` from the environment (`PGBEAM_TOKEN` and `PGBEAM_API_TOKEN` are accepted as aliases, the same order the CLI and the Terraform, Crossplane and Pulumi providers use). `PGBEAM_API_URL` overrides the base URL.
+Omit `token` and the client reads `PGBEAM_API_KEY` from the environment (`PGBEAM_TOKEN` and `PGBEAM_API_TOKEN` are accepted as aliases, checked in that order, as the CLI does; the Terraform and Pulumi providers read `PGBEAM_API_KEY` only). `PGBEAM_API_URL` overrides the base URL.
 
 ### Async
 

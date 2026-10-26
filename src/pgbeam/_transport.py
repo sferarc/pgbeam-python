@@ -17,6 +17,22 @@ The bounds, in the order they bite:
   attempt and including time spent in requests. A retry that would land past the
   budget is not made, so a long backoff ladder against a service that is down
   cannot outlive it.
+
+What is retried depends on whether a retry could repeat a write. GET, PUT and
+DELETE, and any POST or PATCH that carries an ``Idempotency-Key`` (generated or
+supplied through the client's headers), retry 408, 429, 502, 503 and 504 and
+every transport error. A POST or PATCH without a key retries only what proves
+the server did not act on it: 408, 429, a 503 that carries ``Retry-After``, and
+a failure to connect (``httpx.ConnectError`` or ``httpx.ConnectTimeout``). A
+read timeout, any other transport error, a 502, a 504 or a bare 503 might
+follow a write the server already made, so it is raised on the first attempt
+rather than risk making the write twice. This is stricter than the TypeScript
+SDK, which still retries a bare 503 and some transport errors for an unkeyed
+write; the rule is written down here so that SDK can be brought to match it.
+
+``Retry-After`` wins over backoff whenever it is present, including
+``Retry-After: 0`` and a date already in the past, which both mean try again
+now.
 """
 
 from __future__ import annotations
@@ -50,6 +66,15 @@ DEFAULT_TIMEOUT_MS = 30_000
 #: Methods where a retry could otherwise duplicate work. PUT and DELETE are
 #: idempotent by definition and need no key; GET changes nothing.
 MUTATING_METHODS = frozenset({"POST", "PATCH"})
+
+
+#: Statuses that show an unkeyed write was not acted on. A 503 joins them only
+#: when it carries ``Retry-After``, which marks a deliberate refusal rather than
+#: a failure partway through.
+UNPROCESSED_STATUS = frozenset({408, 429})
+
+#: Transport errors raised before the request reached the server.
+_CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout)
 
 
 @dataclass(frozen=True)
@@ -105,6 +130,37 @@ def _retry_after_ms(response: httpx.Response) -> float | None:
     now = dt.datetime.now(tz=when.tzinfo or dt.timezone.utc)
     delta_ms = (when - now).total_seconds() * 1000
     return max(delta_ms, 0.0)
+
+
+def _is_unkeyed_write(method: str, headers: Mapping[str, str]) -> bool:
+    """Whether a retry of this request could make the same write twice."""
+    if method.upper() not in MUTATING_METHODS:
+        return False
+    return not _has_idempotency_key(headers)
+
+
+def _has_idempotency_key(headers: Mapping[str, str]) -> bool:
+    return any(name.lower() == "idempotency-key" for name in headers)
+
+
+def _status_is_retryable(response: httpx.Response, unkeyed_write: bool) -> bool:
+    status = response.status_code
+    if status not in RETRYABLE_STATUS:
+        return False
+    if not unkeyed_write:
+        return True
+    if status == 503:
+        return bool(response.headers.get("Retry-After"))
+    return status in UNPROCESSED_STATUS
+
+
+def _error_is_retryable(err: httpx.HTTPError, unkeyed_write: bool) -> bool:
+    return not unkeyed_write or isinstance(err, _CONNECT_ERRORS)
+
+
+def _status_delay_ms(response: httpx.Response, attempt: int, config: RetryConfig) -> float:
+    retry_after = _retry_after_ms(response)
+    return retry_after if retry_after is not None else _backoff_ms(attempt, config)
 
 
 def _query_value(value: object) -> str:
@@ -300,11 +356,13 @@ class Transport:
             and retry.max_retries > 0
             and retry.idempotency_keys
             and method.upper() in MUTATING_METHODS
+            and not _has_idempotency_key(headers)
         ):
-            headers.setdefault("Idempotency-Key", str(uuid.uuid4()))
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         timeout = self._timeout_ms / 1000 if self._timeout_ms > 0 else None
         content = json.dumps(body).encode() if body is not None else None
+        unkeyed_write = _is_unkeyed_write(method, headers)
 
         for attempt in range(retry.max_retries + 1):
             answered = False
@@ -322,10 +380,10 @@ class Transport:
                 if response.is_success:
                     return _parse_body(response)
 
-                retryable = response.status_code in RETRYABLE_STATUS and attempt < retry.max_retries
-                delay = (
-                    (_retry_after_ms(response) or _backoff_ms(attempt, retry)) if retryable else 0.0
+                retryable = attempt < retry.max_retries and _status_is_retryable(
+                    response, unkeyed_write
                 )
+                delay = _status_delay_ms(response, attempt, retry) if retryable else 0.0
                 if not retryable or _out_of_budget(attempt_ctx.started_at, delay, retry):
                     raise ApiError(
                         response.status_code,
@@ -337,8 +395,10 @@ class Transport:
                 raise
             except httpx.HTTPError as err:
                 delay = _backoff_ms(attempt, retry)
-                if attempt == retry.max_retries or _out_of_budget(
-                    attempt_ctx.started_at, delay, retry
+                if (
+                    attempt == retry.max_retries
+                    or not _error_is_retryable(err, unkeyed_write)
+                    or _out_of_budget(attempt_ctx.started_at, delay, retry)
                 ):
                     if answered:
                         raise
@@ -423,11 +483,13 @@ class AsyncTransport:
             and retry.max_retries > 0
             and retry.idempotency_keys
             and method.upper() in MUTATING_METHODS
+            and not _has_idempotency_key(headers)
         ):
-            headers.setdefault("Idempotency-Key", str(uuid.uuid4()))
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         timeout = self._timeout_ms / 1000 if self._timeout_ms > 0 else None
         content = json.dumps(body).encode() if body is not None else None
+        unkeyed_write = _is_unkeyed_write(method, headers)
 
         for attempt in range(retry.max_retries + 1):
             answered = False
@@ -445,10 +507,10 @@ class AsyncTransport:
                 if response.is_success:
                     return _parse_body(response)
 
-                retryable = response.status_code in RETRYABLE_STATUS and attempt < retry.max_retries
-                delay = (
-                    (_retry_after_ms(response) or _backoff_ms(attempt, retry)) if retryable else 0.0
+                retryable = attempt < retry.max_retries and _status_is_retryable(
+                    response, unkeyed_write
                 )
+                delay = _status_delay_ms(response, attempt, retry) if retryable else 0.0
                 if not retryable or _out_of_budget(attempt_ctx.started_at, delay, retry):
                     raise ApiError(
                         response.status_code,
@@ -460,8 +522,10 @@ class AsyncTransport:
                 raise
             except httpx.HTTPError as err:
                 delay = _backoff_ms(attempt, retry)
-                if attempt == retry.max_retries or _out_of_budget(
-                    attempt_ctx.started_at, delay, retry
+                if (
+                    attempt == retry.max_retries
+                    or not _error_is_retryable(err, unkeyed_write)
+                    or _out_of_budget(attempt_ctx.started_at, delay, retry)
                 ):
                     if answered:
                         raise

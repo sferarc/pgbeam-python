@@ -157,6 +157,8 @@ __all__ = [
     "PolicyReplayItem",
     "PolicyReplayResult",
     "PolicyReplaySummary",
+    "PolicyStatementKindVerdict",
+    "PolicyStatementKinds",
     "PoolConfig",
     "PoolMode",
     "Project",
@@ -1473,7 +1475,7 @@ class DryEvalResult(TypedDict):
 
     # allow: permitted unchanged; block: rejected; mask: permitted but listed result columns are masked; row-filter: permitted but a WHERE predicate is injected (and any listed columns are also masked).
     verdict: Literal["allow", "block", "mask", "row-filter"]
-    # Machine-readable decision tag. For a block, the blocking rule (e.g. read_only, table_denied, table_not_allowed, statement_denied, row_filter_unsafe). Otherwise "ok".
+    # Machine-readable decision tag. For a block, the blocking rule (e.g. read_only, table_denied, table_not_allowed, statement_denied, row_filter_unsafe, template_required). Otherwise "ok".
     rule: str
     # Human-readable explanation of the verdict.
     reason: str
@@ -1487,6 +1489,8 @@ class DryEvalResult(TypedDict):
     rewritten_sql: NotRequired[str]
     # Informational caveats about stateful enforcement a single-statement preview cannot model (per-region budgets, approvals, write-mode routing).
     notes: NotRequired[list[str]]
+    # The name of the project query template the statement matched. Present only when the policy is templates-only and the statement is one of the project's enabled templates; a templates-only policy blocks anything else with rule template_required.
+    template: NotRequired[str]
 
 
 class Error(TypedDict):
@@ -2250,6 +2254,8 @@ class PolicyProfile(TypedDict):
     content_scan_mode: NotRequired[Literal["off", "annotate", "block"]]
     # Byte budget for one statement's content scan, spanning all values in the result. Values past it are reported unscannable rather than skipped quietly. The budget covers a whole statement, so the statements of one simple-query batch share it rather than each getting a fresh allowance. 0 uses the scanner default (4 MiB), which covers an interactive result set and deliberately does not cover a bulk export.
     content_scan_max_bytes: NotRequired[int]
+    # What an agent on this profile may send. sql admits any statement the rest of the profile allows. templates admits only the project's enabled query templates (matched on the parse tree, so spelling and literals in the template's own text count), and refuses everything else with SQLSTATE 42501 and decision rule template_required, MCP query included. A matched template still meets every other rule on this profile: a template narrows what an agent can run and never grants access. The hosted MCP discovery tools (list_tables, describe_table, schema_catalog) keep working under templates.
+    query_mode: Literal["sql", "templates"]
     # When the policy profile was created.
     created_at: str
     # When the policy profile was last updated.
@@ -2298,6 +2304,8 @@ class PolicyProfileInput(TypedDict):
     content_scan_mode: NotRequired[Literal["off", "annotate", "block"]]
     # Byte budget for one statement's content scan, spanning all values in the result. Values past it are reported unscannable rather than skipped quietly. The budget covers a whole statement, so the statements of one simple-query batch share it rather than each getting a fresh allowance. 0 uses the scanner default (4 MiB), which covers an interactive result set and deliberately does not cover a bulk export.
     content_scan_max_bytes: NotRequired[int]
+    # What an agent on this profile may send. sql admits any statement the rest of the profile allows. templates admits only the project's enabled query templates and refuses everything else with SQLSTATE 42501 and decision rule template_required; a matched template still meets every other rule on this profile, so it narrows and never grants access. Setting templates is refused with 400 when the project has no enabled template, since that profile would admit nothing, and with 409 while the organization has a live self-hosted enrollment, since an older self-hosted proxy ignores this field and would run unrestricted SQL. On create, omitting the field means sql. On update, omitting it keeps the stored mode, so a client that predates this field cannot widen a templates profile back to sql by saving it; send sql to do that.
+    query_mode: NotRequired[Literal["sql", "templates"]]
 
 
 class PolicyRecommendation(TypedDict):
@@ -2409,6 +2417,30 @@ class PolicyReplaySummary(TypedDict):
     skipped_unparseable: int
     # True when the window contained more distinct queries than limit; only the newest were replayed.
     truncated: bool
+
+
+class PolicyStatementKindVerdict(TypedDict):
+    """Whether the policy permits one statement kind."""
+
+    # The statement kind: select, insert, update, delete, ddl, copy, set, show, explain, transaction or other. other is a statement the analyzer could not classify (LISTEN, DEALLOCATE, cursor statements and the like). Plain string rather than an enum so a kind the proxy learns to classify later does not break an older client.
+    kind: str
+    # Whether a statement of this kind is permitted.
+    allowed: bool
+    # The machine-readable rule that refuses the kind (for example copy_blocked, statement_denied, statement_not_allowed, unknown_statement or read_only). Present only when allowed is false.
+    rule: NotRequired[str]
+    # The proxy's own explanation of the refusal. Present only when allowed is false.
+    reason: NotRequired[str]
+
+
+class PolicyStatementKinds(TypedDict):
+    """The policy's verdict for each statement kind on its own, as the data plane decides it."""
+
+    # The policy profile these verdicts are for.
+    policy_id: str
+    # The access mode enforced. Anything stored that is not read_write is enforced as read_only.
+    access_mode: Literal["read_only", "read_write"]
+    # One verdict per statement kind, in a fixed order.
+    statement_kinds: list[PolicyStatementKindVerdict]
 
 
 class PoolConfig(TypedDict):
@@ -2566,7 +2598,7 @@ class QueryTemplateInput(TypedDict):
 
     # Name an agent invokes the template by. A lower-case identifier starting with a letter, at most 63 characters, unique within the project.
     name: str
-    # What the template is for, shown to an agent that lists the templates.
+    # What the template is for, shown to an agent that lists the templates. Defaults to empty.
     description: NotRequired[str]
     # The statement, with its parameters as $1, $2 and so on. Exactly one SELECT, INSERT, UPDATE or DELETE, at most 16384 bytes. Every placeholder must be declared in params and every declared parameter must be used.
     sql: str
