@@ -1467,7 +1467,7 @@ class DryEvalMaskedColumn(TypedDict):
     # The output column name (post-alias) the client would see masked.
     column: str
     # How the column is masked.
-    kind: Literal["redact", "null", "hash"]
+    kind: Literal["redact", "null", "hash", "last4", "email_domain"]
 
 
 class DryEvalResult(TypedDict):
@@ -1839,8 +1839,8 @@ class MaskingRule(TypedDict):
     table: str
     # Column to mask.
     column: str
-    # How to mask. redact replaces with a token, null returns NULL, hash returns a SHA-256 hex.
-    kind: Literal["redact", "null", "hash"]
+    # How to mask. redact replaces with a token, null returns NULL, hash returns a SHA-256 hex, last4 keeps the final four characters behind "****", and email_domain keeps the domain behind "****@". A value too short for last4 or not shaped like an email for email_domain is redacted instead.
+    kind: Literal["redact", "null", "hash", "last4", "email_domain"]
 
 
 class McpRequest(TypedDict):
