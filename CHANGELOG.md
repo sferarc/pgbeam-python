@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.6.0
+
+### Minor Changes
+
+- cf9b283: Add `overage_per_1k` and `overage_per_gb` to `PlanLimits`: the organization's own overage prices in USD per 1,000 queries over the daily quota and per GB over the monthly quota. A value of 0 means the quota is a hard cap and no overage is billed.
+
 ## 0.5.0
 
 ### Minor Changes
