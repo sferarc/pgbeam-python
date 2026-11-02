@@ -2190,6 +2190,10 @@ class PlanLimits(TypedDict):
     queries_per_second: int
     # Monthly data transfer quota in bytes. 0 means unlimited.
     bytes_per_month: int
+    # Price in USD for each 1,000 queries over the daily quota. 0 means the quota is a hard cap and no query overage is billed.
+    overage_per_1k: float
+    # Price in USD for each GB transferred over the monthly quota. 0 means the quota is a hard cap and no transfer overage is billed.
+    overage_per_gb: float
     # Maximum query shapes in cache rules. 0 means unlimited.
     max_query_shapes: int
     # Number of seats included in the plan.
