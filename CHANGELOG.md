@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.7.0
+
+### Minor Changes
+
+- c85e41f: Policy profiles carry `function_denylist`, a list of functions an agent on the profile may not call. It adds to the proxy's built-in dangerous-function floor and is refused with decision rule `function_denied`. Entries are a bare name (`recompute`, matched in every schema) or one schema-qualified name (`billing.recompute`, which also matches an unqualified call of that name). On update, an omitted `function_denylist` keeps the stored list; send `[]` to clear it. While the organization has a live self-hosted data plane enrollment, a non-empty list is refused with 409, and a new enrollment is refused while any profile has one, because an older self-hosted proxy would ignore the list. In Terraform, removing `function_denylist` from a config plans an empty list.
+
 ## 0.6.0
 
 ### Minor Changes
