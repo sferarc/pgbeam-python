@@ -2945,7 +2945,7 @@ class PlatformService:
     ) -> SelfHostEnrollmentSecret:
         """Issue a self-host enrollment token.
 
-        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. Disable those rules first; they can be saved with enabled set to false.
+        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, a policy profile with query_mode set to templates, or a policy profile with a non-empty function_denylist, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces them. Disable those rules (they can be saved with enabled set to false), set those profiles' query_mode to sql and empty their function_denylist first.
 
         ``POST /v1/organizations/{org_id}/self-host-enrollments``
 
@@ -6407,7 +6407,7 @@ class AsyncPlatformService:
     ) -> SelfHostEnrollmentSecret:
         """Issue a self-host enrollment token.
 
-        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces approval rules. Disable those rules first; they can be saved with enabled set to false.
+        Issues an enrollment token a self-hosted (BYOC) proxy uses to authenticate to the control plane's config/audit gRPC stream. The token is returned once and cannot be retrieved again. Requires the Scale or enterprise plan. Returns 409 while any project in the organization has an enabled approval rule, a policy profile with query_mode set to templates, or a policy profile with a non-empty function_denylist, because PgBeam cannot yet confirm that a self-hosted proxy runs a build that enforces them. Disable those rules (they can be saved with enabled set to false), set those profiles' query_mode to sql and empty their function_denylist first.
 
         ``POST /v1/organizations/{org_id}/self-host-enrollments``
 
