@@ -1,5 +1,11 @@
 # @pgbeam/python-sdk
 
+## 0.7.1
+
+### Patch Changes
+
+- 61fbe14: Drop the internal Slack support event operation, its `SlackEventPayload` schema and the `InternalSecret` scheme from the public spec and SDKs. It is a dashboard-to-API call no customer can make.
+
 ## 0.7.0
 
 ### Minor Changes

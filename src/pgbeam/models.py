@@ -190,7 +190,6 @@ __all__ = [
     "SchemaCatalogRelation",
     "SelfHostEnrollment",
     "SelfHostEnrollmentSecret",
-    "SlackEventPayload",
     "StatementRules",
     "SupportCase",
     "SupportCaseStatus",
@@ -2895,19 +2894,6 @@ class SelfHostEnrollmentSecret(TypedDict):
     enrollment: SelfHostEnrollment
     # The plaintext enrollment token (pbh_...). Shown once.
     token: str
-
-
-class SlackEventPayload(TypedDict):
-    """Slack event forwarded from the dashboard webhook handler."""
-
-    # Slack channel ID where the message was posted.
-    channel_id: str
-    # Slack thread timestamp identifying the support case thread.
-    thread_ts: str
-    # Slack user ID of the message author.
-    user_id: str
-    # Message text from Slack.
-    text: str
 
 
 class StatementRules(TypedDict):
